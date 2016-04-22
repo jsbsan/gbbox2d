@@ -8,29 +8,28 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not'
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
 ' * 2. Altered source versions must be plainly marked, and must not be
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
-' */
-dim  b2Bound  as variant = Class.create()
 
-b2Bound.prototype = 
-end
 
-public  sub 	IsLower()
- return ( me.value & 1) == 0
+	public value as integer= 0
+	public proxyId as integer= 0
+	public stabbingCount as integer 0
+
+
+public  sub 	IsLower() as boolean
+ return ( me.value & 1) = 0
   '' TODO: posible funcion (revisar)
-
 end
 
-public  sub 	IsUpper()
+public  sub 	IsUpper() as boolean
  return ( me.value & 1) == 1
   '' TODO: posible funcion (revisar)
-
 end
 
 public  sub 	Swap(b as variant)
@@ -47,10 +46,6 @@ dim 		 tempStabbingCount  as variant = me.stabbingCount
 		b.value = tempValue
 		b.proxyId = tempProxyId
 		b.stabbingCount = tempStabbingCount
-	value: 0
-	proxyId: 0
-	stabbingCount: 0
+
 end
 
-public  sub 	initialize()
- 
