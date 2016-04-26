@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -17,67 +17,50 @@
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 ' //  We use contact ids to facilitate warm starting.
-dim  Features  as variant = Class.create()
 
-Features.prototype = 
-	' // 
-end
+public 	_referenceFace as variant=0
+public 	_incidentEdge as variant= 0
+public 	_incidentVertex as variant= 0
+
+public 	_flip as variant=0
+public _m_id as variant = null
 
 public  sub 	set_referenceFace(value as variant)
-
 		 me._referenceFace = value
-		 me._m_id._key = ( me._m_id._key & 0xffffff00) | ( me._referenceFace & 0x000000ff)
+		 me._m_id._key = ( me._m_id._key and 0xffffff00) or ( me._referenceFace and 0x000000ff)
 end
 
 public  sub 	get_referenceFace() as variant ''funcion
 		return me._referenceFace
- '' TODO: posible funcion (revisar)
-
-	_referenceFace: 0
-	' // 
 end
 
 public  sub 	set_incidentEdge(value as variant)
-
 		 me._incidentEdge = value
-		 me._m_id._key = ( me._m_id._key & 0xffff00ff) | (( me._incidentEdge << 8) & 0x0000ff00)
+		 me._m_id._key = ( me._m_id._key and  0xffff00ff) or (( me._incidentEdge << 8) and 0x0000ff00)
 end
 
 public  sub 	get_incidentEdge() as variant ''funcion
 		return me._incidentEdge
- '' TODO: posible funcion (revisar)
-
-	_incidentEdge: 0
-	' // 
 end
 
-public  sub 	set_incidentVertex(value as variant)
 
+
+public  sub 	set_incidentVertex(value as variant)
 		 me._incidentVertex = value
-		 me._m_id._key = ( me._m_id._key & 0xff00ffff) | (( me._incidentVertex << 16) & 0x00ff0000)
+		 me._m_id._key = ( me._m_id._key and 0xff00ffff) or (( me._incidentVertex << 16) and 0x00ff0000)
 end
 
 public  sub 	get_incidentVertex() as variant ''funcion
 		return me._incidentVertex
- '' TODO: posible funcion (revisar)
-
-	_incidentVertex: 0
-	' // 
 end
 
 public  sub 	set_flip(value as variant)
-
 		 me._flip = value
-		 me._m_id._key = ( me._m_id._key & 0x00ffffff) | (( me._flip << 24) & 0xff000000)
+		 me._m_id._key = ( me._m_id._key and 0x00ffffff) or (( me._flip << 24) and 0xff000000)
 end
 
 public  sub 	get_flip() as variant ''funcion
 		return me._flip
- '' TODO: posible funcion (revisar)
+next
 
-	_flip: 0
-	_m_id: null
-end
 
-public  sub 	initialize()
- 

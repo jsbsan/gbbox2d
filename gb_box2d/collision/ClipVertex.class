@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,16 +16,15 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  ClipVertex  as variant = Class.create()
-
-ClipVertex.prototype = 
-Public v: new b2Vec2(), as new 2Vec2(),
-Public d: new b2ContactID(), as new 2ContactID(),
-end
-
-public  sub 	initialize()
  
+Public v  as new b2Vec2()
+Public id as new b2ContactID()
+
+
+public  sub _new()
 		' //  initialize instance variables for references
 		 me.v = new b2Vec2()
 		 me.id = new b2ContactID()
+end
+
 		' // 

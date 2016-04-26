@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not    
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -17,17 +17,16 @@
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 ' //  We use contact ids to facilitate warm starting.
-dim  b2ContactID  as variant = Class.create()
 
-b2ContactID.prototype = 
-end
+Public features = new Features()'' cuidado que es en minusculas
+public _key as float= 0
 
-public  sub 	initialize()
+public  sub 	_new()
 
 		' //  initialize instance variables for references
 		 me.features = new Features()
 		' // 
-		 me.features._m_id = this
+		 me.features._m_id = me
 end
 
 public  sub 	Set(id as variant)
@@ -40,22 +39,19 @@ dim 		 id  as variant = new b2ContactID()
 
 		id.set_key( me._key)
 		return id
- '' TODO: posible funcion (revisar)
+ end
 
-end
-
-public  sub 	get_key() as variant ''funcion
+public  sub 	get_key() as variant 
 		return me._key
- '' TODO: posible funcion (revisar)
-
+ 
 end
 
 public  sub 	set_key(value as variant)
- 
-		 me._key = value
+ 		 me._key = value
 		 me.features._referenceFace = me._key & 0x000000ff
 		 me.features._incidentEdge = (( me._key & 0x0000ff00) >> 8) & 0x000000ff
 		 me.features._incidentVertex = (( me._key & 0x00ff0000) >> 16) & 0x000000ff
 		 me.features._flip = (( me._key & 0xff000000) >> 24) & 0x000000ff
-Public s: new Features(), as new eatures(),
-	_key: 0
+end
+
+

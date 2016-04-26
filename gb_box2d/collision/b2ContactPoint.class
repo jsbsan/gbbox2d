@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+'  you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -17,19 +17,18 @@
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 ' //  We use contact ids to facilitate warm starting.
-dim  b2ContactPoint  as variant = Class.create()
 
-b2ContactPoint.prototype = 
-Public n: new b2Vec2(), as new 2Vec2(),
-	separation: null
-	normalImpulse: null
-	tangentImpulse: null
-Public d: new b2ContactID(), as new 2ContactID(),
-end
 
-public  sub 	initialize()
- 
-		' //  initialize instance variables for references
+
+Public 	position as  new b2Vec2()
+public separation as variant= null
+public  normalImpulse as variant= null
+public tangentImpulse as variant= null
+
+Public id as  as new 2ContactID()
+
+public  sub _new()
+ 		' //  initialize instance variables for references
 		 me.position = new b2Vec2()
 		 me.id = new b2ContactID()
-		' // 
+end

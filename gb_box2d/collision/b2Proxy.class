@@ -8,44 +8,39 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
 ' * 2. Altered source versions must be plainly marked, and must not be
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
-' */
-dim  b2Proxy  as variant = Class.create()
 
-b2Proxy.prototype = 
-end
+
+public lowerBounds as new variant[]= [0,0]
+public	upperBounds as new variant[]= [0,0]
+public overlapCount as integer 0
+public timeStamp as integer 0
+public userData as integer null
+
+
 
 public  sub 	GetNext()
  return me.lowerBounds[0]
-  '' TODO: posible funcion (revisar)
-
 end
 
-public  sub 	SetNext(next as variant)
-  me.lowerBounds[0] = next ' /* & 0x0000ffff*/
- 
+public  sub 	SetNext(nextt as variant)
+  me.lowerBounds[0] = nextt ' /* & 0x0000ffff*/
 end
 
 public  sub 	IsValid()
- return me.overlapCount != b2BroadPhase.b2_invalid
+ return me.overlapCount <> b2BroadPhase.b2_invalid
   '' TODO: posible funcion (revisar)
-
-	lowerBounds: [' /* uint*/(0), ' /* uint*/(0)]
-	upperBounds: [' /* uint*/(0), ' /* uint*/(0)]
-	overlapCount: 0
-	timeStamp: 0
-	userData: null
 end
 
-public  sub 	initialize()
- 
+
+public  sub 	_new()
 		' //  initialize instance variables for references
-		 me.lowerBounds = [' /* uint*/(0), ' /* uint*/(0)]
-		 me.upperBounds = [' /* uint*/(0), ' /* uint*/(0)]
-		' // 
+		 me.lowerBounds =[0,0]
+		 me.upperBounds =  [0,0]
+end

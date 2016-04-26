@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ you must not 
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -17,17 +17,19 @@
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 ' //  A manifold for two touching convex shapes.
-dim  b2Manifold  as variant = Class.create()
 
-b2Manifold.prototype = 
-end
+	public points as variant
+	public normal as variant
+	public pointCount as variant
 
-public  sub 	initialize()
+
+public  sub _new()
+dim i as integer
 
 		 me.points = new Array(b2Settings.b2_maxManifoldPoints)
-		for (var i = 0; i < b2Settings.b2_maxManifoldPoints; i++)
-			 me.points[i] = new b2ContactPoint()
+		for  i = 0 to  b2Settings.b2_maxManifoldPoints
+					 me.points[i] = new b2ContactPoint()
+		next
 		 me.normal = new b2Vec2()
-	points: null
-	normal: null
-	pointCount: 0
+end
+

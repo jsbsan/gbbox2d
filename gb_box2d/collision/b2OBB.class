@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ you must not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -17,18 +17,17 @@
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 ' //  A manifold for two touching convex shapes.
-dim  b2OBB  as variant = Class.create()
 
-b2OBB.prototype = 
-Public R: new b2Mat22(), as new 2Mat22(),
-Public r: new b2Vec2(), as new 2Vec2(),
-Public s: new b2Vec2(), as new 2Vec2(),
-end
+Public R as new b2Mat22()
+Public center as new b2Vec2()
+Public 	extents as  new b2Vec2()
 
-public  sub 	initialize()
- 
-		' //  initialize instance variables for references
-		 me.R = new b2Mat22()
+
+public  sub _new()
+ 		' //  initialize instance variables for references
+	     me.R = new b2Mat22()
 		 me.center = new b2Vec2()
 		 me.extents = new b2Vec2()
+end
+
 		' // 

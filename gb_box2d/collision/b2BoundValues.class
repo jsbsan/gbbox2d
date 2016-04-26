@@ -19,7 +19,7 @@
 public 	lowerValues as variant = [0,0]
 public upperValues as variant = [0,0]
 
-public  sub 	initialize()
+public  sub 	_new()
  		' //  initialize instance variables for references
 		 me.lowerValues = [0,0]
 		 me.upperValues = [0,0]
