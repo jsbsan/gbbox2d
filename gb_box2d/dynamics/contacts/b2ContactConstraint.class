@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,24 +16,26 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2ContactConstraint  as variant = Class.create()
 
-b2ContactConstraint.prototype = 
-end
 
-public  sub 	initialize()
+Public	points: null
+Public normal as  new b2Vec2()
+Public	manifold as variant=  null
+Public	body1 as variant=  null
+Public	body2 as variant=  null
+Public	friction as variant=  null
+Public	restitution as variant= null
+Public	pointCount as integer=0
 
+public  sub 	_new()
+        dim i as integer
 		' //  initialize instance variables for references
 		 me.normal = new b2Vec2()
 		' // 
 		 me.points = new Array(b2Settings.b2_maxManifoldPoints)
-		for (var i = 0; i < b2Settings.b2_maxManifoldPoints; i++)
+		for (var i = 0 to   b2Settings.b2_maxManifoldPoints
 			 me.points[i] = new b2ContactConstraintPoint()
-	points: null
-Public l: new b2Vec2(), as new 2Vec2(),
-	manifold: null
-	body1: null
-	body2: null
-	friction: null
-	restitution: null
-	pointCount: 0
+		next
+end
+
+

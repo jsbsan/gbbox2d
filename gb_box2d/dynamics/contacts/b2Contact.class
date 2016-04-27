@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -18,59 +18,72 @@
 ' */
 ' // typedef b2Contact* b2ContactCreateFcn(b2Shape* shape1, b2Shape* shape2, b2BlockAllocator* allocator)
 ' // typedef void b2ContactDestroyFcn(b2Contact* contact, b2BlockAllocator* allocator)
-dim  b2Contact  as variant = Class.create()
 
-b2Contact.prototype = 
-end
 
-public  sub 	GetManifolds()
-return null '' TODO: posible funcion (revisar)
+	public m_flags as integer= 0
+	' //  World pool and list pointers.
+	public m_prev as variant= null
+	public m_next  as variant= null
+	' //  Nodes for connecting bodies.
+Public 	m_node1 as new 2ContactNode()
+Public 	m_node2 as new 2ContactNode()
 
+public		m_shape1 as variant= null
+public		m_shape2 as variant= null
+public	foldCount as variant= 0
+	' //  Combined friction
+public		m_friction as variant=null
+public	m_restitution as variant= null
+
+public e_islandFlag as variant= 0x0001
+ public e_destroyFlag as variant= 0x0002
+
+public s_registers as variant= null
+public s_initialized as variant= false
+
+public  sub 	GetManifolds() as variant
+	return null '' TODO: posible funcion (revisar)
 end
 
 public  sub 	GetManifoldCount() as variant ''funcion
-		return me.m_manifoldCount
- '' TODO: posible funcion (revisar)
-
+	return me.m_manifoldCount
 end
 
 public  sub 	GetNext() as variant ''funcion
 		return me.m_next
- '' TODO: posible funcion (revisar)
-
 end
 
 public  sub 	GetShape1() as variant ''funcion
 		return me.m_shape1
- '' TODO: posible funcion (revisar)
-
 end
 
 public  sub 	GetShape2() as variant ''funcion
 		return me.m_shape2
  '' TODO: posible funcion (revisar)
-
+end
 	' // --------------- Internals Below -------------------
 	' //  me.m_flags
 	' //  enum
-end
 
-public  sub 	initialize(s1 as variant, s2 as variant) as variant ''funcion
+
+public  sub _new(s1 as variant, s2 as variant) as variant ''funcion
 		' //  initialize instance variables for references
 		 me.m_node1 = new b2ContactNode()
 		 me.m_node2 = new b2ContactNode()
 		' // 
 		 me.m_flags = 0
-		if (!s1 || !s2)
+		if (not s1 or  not s2) then 
 			 me.m_shape1 = null
 			 me.m_shape2 = null
 			return
- '' TODO: posible funcion (revisar)
+		endif
+		
+ 
 
 		 me.m_shape1 = s1
 		 me.m_shape2 = s2
 		 me.m_manifoldCount = 0
-		 me.m_friction = Math.sqrt( me.m_shape1.m_friction * me.m_shape2.m_friction)
+		 me.m_friction = sqrt( me.m_shape1.m_friction * me.m_shape2.m_friction)
 		 me.m_restitution = b2Math.b2Max( me.m_shape1.m_restitution, me.m_shape2.m_restitution)
 		 me.m_prev = null
 		 me.m_next = null
@@ -86,103 +99,98 @@ public  sub 	initialize(s1 as variant, s2 as variant) as variant ''funcion
 end
 
 public  sub 	Evaluate()
-
-	m_flags: 0
-	' //  World pool and list pointers.
-	m_prev: null
-	m_next: null
-	' //  Nodes for connecting bodies.
-Public 1: new b2ContactNode(), as new 2ContactNode(),
-Public 2: new b2ContactNode(), as new 2ContactNode(),
-	m_shape1: null
-	m_shape2: null
-	m_manifoldCount: 0
-	' //  Combined friction
-	m_friction: null
-	m_restitution: null
-b2Contact.e_islandFlag = 0x0001
-b2Contact.e_destroyFlag = 0x0002
 end
 
+
+'-----------------------------------------
 public  sub AddType (createFcn as variant, destroyFcn as variant, type1 as variant, type2 as variant)
 
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
-		b2Contact.s_registers[type1][type2].createFcn = createFcn
-		b2Contact.s_registers[type1][type2].destroyFcn = destroyFcn
-		b2Contact.s_registers[type1][type2].primary = true
-		if (type1 != type2)
-			b2Contact.s_registers[type2][type1].createFcn = createFcn
-			b2Contact.s_registers[type2][type1].destroyFcn = destroyFcn
-			b2Contact.s_registers[type2][type1].primary = false
+		me.s_registers[type1][type2].createFcn = createFcn
+		me.s_registers[type1][type2].destroyFcn = destroyFcn
+		me.s_registers[type1][type2].primary = true
+		if (type1 <> type2) then
+			me.s_registers[type2][type1].createFcn = createFcn
+			me.s_registers[type2][type1].destroyFcn = destroyFcn
+			me.s_registers[type2][type1].primary = false
+		endif
+		
 end
 
 public  sub InitializeRegisters ()
+dim i,j as integer
 
-		b2Contact.s_registers = new Array(b2Shape.e_shapeTypeCount)
-		for (var i = 0; i < b2Shape.e_shapeTypeCount; i++)
-			b2Contact.s_registers[i] = new Array(b2Shape.e_shapeTypeCount)
-			for (var j = 0; j < b2Shape.e_shapeTypeCount; j++)
-				b2Contact.s_registers[i][j] = new b2ContactRegister()
+		me.s_registers = new variant[]
+		for  i = 0 to  b2Shape.e_shapeTypeCount
+			me.s_registers[i] = new new variant[]
 			
+			for  j = 0 to b2Shape.e_shapeTypeCount
+				me.s_registers[i][j] = new b2ContactRegister()
+			next
+		next
+		
 		b2Contact.AddType(b2CircleContact.Create, b2CircleContact.Destroy, b2Shape.e_circleShape, b2Shape.e_circleShape)
 		b2Contact.AddType(b2PolyAndCircleContact.Create, b2PolyAndCircleContact.Destroy, b2Shape.e_polyShape, b2Shape.e_circleShape)
 		b2Contact.AddType(b2PolyContact.Create, b2PolyContact.Destroy, b2Shape.e_polyShape, b2Shape.e_polyShape)
+		
 end
 
 public  sub Create (shape1 as variant, shape2 as variant, allocator as variant) as variant ''funcio as variant ''funcio as variant ''funcion
-		if (b2Contact.s_initialized == false)
+dim 		 createFcn  as variant
+dim 		 type2  as variant 
+dim 		 type1  as variant
+dim 				 c  as variant 
+
+dim 					 m  as variant
+dim i as integer
+
+		if (b2Contact.s_initialized = false) then
 			b2Contact.InitializeRegisters()
 			b2Contact.s_initialized = true
-dim 		 type1  as variant = shape1.m_type
+		endif
+		
+ 		 type1   = shape1.m_type
 
-dim 		 type2  as variant = shape2.m_type
+ 		 type2   = shape2.m_type
 
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
-dim 		 createFcn  as variant = b2Contact.s_registers[type1][type2].createFcn
+ 		 createFcn   = me.s_registers[type1][type2].createFcn
 
-		if (createFcn)
+		if (createFcn) then 
 			if (b2Contact.s_registers[type1][type2].primary)
-			
 				return createFcn(shape1, shape2, allocator)
- '' TODO: posible funcion (revisar)
-
-			
 			else
-			
-dim 				 c  as variant = createFcn(shape2, shape1, allocator)
-
-				for (var i = 0; i < c.GetManifoldCount(); ++i)
+				 c  = createFcn(shape2, shape1, allocator)
+				for  i = 0 to c.GetManifoldCount()
 				
-dim 					 m  as variant = c.GetManifolds()[ i ]
-
-					m.normal = m.normal.Negative()
+					 m  = c.GetManifolds()[ i ]
+					 m.normal = m.normal.Negative()
+				next
 				
 				return c
- '' TODO: posible funcion (revisar)
-
-			
+             endif
+            
 		else
 			return null
- '' TODO: posible funcion (revisar)
-
+		endif
 end
 
 public  sub Destroy (contact as variant, allocator as variant)
-
+dim 		 type1  as variant
+dim 		 type2  as variant
+dim 		 destroyFcn  as variant 
 		' // b2Settings.b2Assert(b2Contact.s_initialized == true)
 		if (contact.GetManifoldCount() > 0)
 			contact.m_shape1.m_body.WakeUp()
 			contact.m_shape2.m_body.WakeUp()
-dim 		 type1  as variant = contact.m_shape1.m_type
+		endif
+type1   = contact.m_shape1.m_type
 
-dim 		 type2  as variant = contact.m_shape2.m_type
-
+ 		 type2   = contact.m_shape2.m_type
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
 		' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
-dim 		 destroyFcn  as variant = b2Contact.s_registers[type1][type2].destroyFcn
-
+         destroyFcn   = b2Contact.s_registers[type1][type2].destroyFcn
 		destroyFcn(contact, allocator)
-b2Contact.s_registers = null
-b2Contact.s_initialized = false
+end

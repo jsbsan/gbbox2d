@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ '  you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,30 +16,27 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2NullContact  as variant = Class.create()
 
-inherits , b2Contact
-inherits 
-end
+inherits b2Contact
 
-public  sub 		initialize(s1 as variant, s2 as variant)
- as variant ''funcion
+public  sub _new(s1 as variant, s2 as variant)  as variant ''funcion
 		' //  The constructor for b2Contact
 		' //  initialize instance variables for references
 		 me.m_node1 = new b2ContactNode()
 		 me.m_node2 = new b2ContactNode()
 		' // 
 		 me.m_flags = 0
-		if (!s1 || !s2)
+		if (not s1 or  not s2) then 
 			 me.m_shape1 = null
 			 me.m_shape2 = null
 			return
- '' TODO: posible funcion (revisar)
+		endif
+
 
 		 me.m_shape1 = s1
 		 me.m_shape2 = s2
 		 me.m_manifoldCount = 0
-		 me.m_friction = Math.sqrt( me.m_shape1.m_friction * me.m_shape2.m_friction)
+		 me.m_friction = sqrt( me.m_shape1.m_friction * me.m_shape2.m_friction)
 		 me.m_restitution = b2Math.b2Max( me.m_shape1.m_restitution, me.m_shape2.m_restitution)
 		 me.m_prev = null
 		 me.m_next = null
@@ -55,10 +52,8 @@ public  sub 		initialize(s1 as variant, s2 as variant)
 end
 
 public  sub 	Evaluate()
- 
-end
+ end
 
-public  sub 	GetManifolds()
+public  sub 	GetManifolds() as variant
  return null
- )
- '' TODO: posible funcion (revisar)
+end

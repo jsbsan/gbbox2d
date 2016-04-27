@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ you must not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,23 +16,24 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2ContactConstraintPoint  as variant = Class.create()
 
-b2ContactConstraintPoint.prototype = 
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-	normalImpulse: null
-	tangentImpulse: null
-	positionImpulse: null
-	normalMass: null
-	tangentMass: null
-	separation: null
-	velocityBias: null
-end
 
-public  sub 	initialize()
+Public localAnchor1 as new b2Vec2()
+Public localAnchor2 as new b2Vec2()
+	Public normalImpulse as variant= null
+	Public tangentImpulse as variant= null
+	Public positionImpulse as variant= null
+	Public normalMass as variant= null
+	Public tangentMass as variant= null
+	Public separation as variant= null
+	Public velocityBias as variant= null
+
+
+
+public  sub 	_new()
  
 		' //  initialize instance variables for references
 		 me.localAnchor1 = new b2Vec2()
 		 me.localAnchor2 = new b2Vec2()
 		' // 
+end

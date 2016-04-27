@@ -1,4 +1,4 @@
-' /* 
+
 ' * Copyright (c) 2006-2007 Erin Catto http:
 ' *
 ' * This software is provided 'as-is', without any express or implied
@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,52 +16,11 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2ContactConstraintPoint  as variant = Class.create()
+	
+	
+public other as variant= null
+public contact as variant= null
+public prev as variant= null
+public nextt as variant= null
 
-b2ContactConstraintPoint.prototype = 
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-	normalImpulse: null
-	tangentImpulse: null
-	positionImpulse: null
-	normalMass: null
-	tangentMass: null
-	separation: null
-	velocityBias: null
-end
-
-public  sub 	initialize()
- 
-		' //  initialize instance variables for references
-		 me.localAnchor1 = new b2Vec2()
-		 me.localAnchor2 = new b2Vec2()
-		' // 
-﻿' /* 
-' * Copyright (c) 2006-2007 Erin Catto http:
-' *
-' * This software is provided 'as-is', without any express or implied
-' * warranty.  In no event will the authors be held liable for any damages
-' * arising from the use of this software.
-' * Permission is granted to anyone to use this software for any purpose
-' * including commercial applications, and to alter it and redistribute it
-' * freely, subject to the following restrictions:
-' * 1. The origin of this software must not be misrepresented
- you must not
-' * claim that you wrote the original software. If you use this software
-' * in a product, an acknowledgment in the product documentation would be
-' * appreciated but is not required.
-' * 2. Altered source versions must be plainly marked, and must not be
-' * misrepresented the original software.
-' * 3. This notice may not be removed or altered from any source distribution.
-' */
-dim  b2ContactNode  as variant = Class.create()
-
-b2ContactNode.prototype = 
-	other: null
-	contact: null
-	prev: null
-	next: null
-end
-
-public  sub 	initialize()
  

@@ -7,80 +7,143 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not
 ' * claim that you wrote the original software. If you use this software
-' * in a product, an acknowledgment in the product documentation would be
+' * in a product, an ackn owledgment in the product documentation would be
 ' * appreciated but is not required.
 ' * 2. Altered source versions must be plainly marked, and must not be
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2ContactSolver  as variant = Class.create()
 
-b2ContactSolver.prototype = 
-end
 
-public  sub 	initialize(contacts as variant, contactCount as variant, allocator as variant)
+public m_allocator as variant= null,
+public	m_constraints as new variant[]
+public	m_constraintCount as integer 0
 
-		' //  initialize instance variables for references
-		 me.m_constraints = new Array()
-		' // 
-		 me.m_allocator = allocator
-dim 		 i  as variant = 0
 
-dim 		tVec
- as variant
-dim 		tMat
- as variant
-		 me.m_constraintCount = 0
-		for (i = 0; i < contactCount; ++i)
-			 me.m_constraintCount += contacts[i].GetManifoldCount()
-		' //  fill array
-		for (i = 0; i < me.m_constraintCount; i++)
-			 me.m_constraints[i] = new b2ContactConstraint()
+
+public  sub _new(contacts as variant, contactCount as variant, allocator as variant)
+dim 		 i,j,k as variant = 0
+
+dim 		tVec  as variant
+dim 		tMat  as variant
 dim 		 count  as variant = 0
 
-		for (i = 0; i < contactCount; ++i)
-dim 			 contact  as variant = contacts[i]
 
-dim 			 b1  as variant = contact.m_shape1.m_body
+dim 			 contact  as variant 
 
-dim 			 b2  as variant = contact.m_shape2.m_body
+dim 			 b1  as variant 
 
-dim 			 manifoldCount  as variant = contact.GetManifoldCount()
+dim 			 b2  as variant 
 
-dim 			 manifolds  as variant = contact.GetManifolds()
+dim 			 manifoldCount  as variant 
 
-dim 			 friction  as variant = contact.m_friction
+dim 			 manifolds  as variant 
 
-dim 			 restitution  as variant = contact.m_restitution
+dim 			 friction  as variant 
+
+dim 			 restitution  as variant 
 
 			' // var v1 = b1.m_linearVelocity.Copy()
-dim 			 v1X  as variant = b1.m_linearVelocity.x
+dim 			 v1X  as variant 
 
-dim 			 v1Y  as variant = b1.m_linearVelocity.y
+dim 			 v1Y  as variant 
 
 			' // var v2 = b2.m_linearVelocity.Copy()
-dim 			 v2X  as variant = b2.m_linearVelocity.x
+dim 			 v2X  as variant 
 
-dim 			 v2Y  as variant = b2.m_linearVelocity.y
+dim 			 v2Y  as variant 
 
-dim 			 w1  as variant = b1.m_angularVelocity
+dim 			 w1  as variant 
 
-dim 			 w2  as variant = b2.m_angularVelocity
+dim 			 w2  as variant 
 
-			for (var j = 0; j < manifoldCount; ++j)
+
+dim 				 manifold  as variant 
+dim 				 normalX  as variant
+dim 				 c  as variant 
+dim 				 normalY  as variant 
+
+dim 					 cp  as variant 
+dim 					 ccp  as varian
+dim 					 r1X  as variant 
+dim 					 r1Y  as variant
+dim 					 r2X  as variant
+dim 					 r2Y  as variant
+
+dim 					 r1Sqr  as variant
+dim 					 r2Sqr  as variant
+dim 					 rn1  as variant
+dim 					 rn2  as variant 
+dim 					 kNormal  as variant
+dim 					 tangentX  as variant 
+dim 					 rt1  as variant 
+dim 					 rt2  as variant 
+dim 					 kTangent  as variant
+
+dim 					 tX  as variant
+dim 					 tY  as variant 
+dim 					 vRel  as variant
+
+		' //  initialize instance variables for references
+		 me.m_constraints = new variant[]		' // 
+		 me.m_allocator = allocator
+
+		 me.m_constraintCount = 0
+		for i = 0 to contactCount
+			 me.m_constraintCount += contacts[i].GetManifoldCount()
+		next
+		
+		' //  fill array
+		for i = 0 to  me.m_constraintCount
+			 me.m_constraints[i] = new b2ContactConstraint()
+		next
+		
+		
+
+
+		for i = 0 to  contactCount
+				 contact   = contacts[i]
+
+				 b1   = contact.m_shape1.m_body
+
+				 b2   = contact.m_shape2.m_body
+
+				 manifoldCount   = contact.GetManifoldCount()
+
+				 manifolds   = contact.GetManifolds()
+
+				 friction   = contact.m_friction
+
+				 restitution   = contact.m_restitution
+
+			' // var v1 = b1.m_linearVelocity.Copy()
+				 v1X   = b1.m_linearVelocity.x
+
+				 v1Y   = b1.m_linearVelocity.y
+
+			' // var v2 = b2.m_linearVelocity.Copy()
+				 v2X   = b2.m_linearVelocity.x
+
+				 v2Y   = b2.m_linearVelocity.y
+
+				 w1   = b1.m_angularVelocity
+
+				 w2   = b2.m_angularVelocity
+
+			for  j = 0 to manifoldCount
 			
-dim 				 manifold  as variant = manifolds[ j ]
+ 				 manifold   = manifolds[ j ]
 
 				' // b2Settings.b2Assert(manifold.pointCount > 0)
 				' // var normal = manifold.normal.Copy()
-dim 				 normalX  as variant = manifold.normal.x
+ 				 normalX   = manifold.normal.x
 
-dim 				 normalY  as variant = manifold.normal.y
+ 				 normalY   = manifold.normal.y
 
 				' // b2Settings.b2Assert(count < me.m_constraintCount)
-dim 				 c  as variant = me.m_constraints[ count ]
+ 				 c   = me.m_constraints[ count ]
 
 				c.body1 = b1
 				c.body2 = b2
@@ -91,24 +154,24 @@ dim 				 c  as variant = me.m_constraints[ count ]
 				c.pointCount = manifold.pointCount
 				c.friction = friction
 				c.restitution = restitution
-				for (var k = 0; k < c.pointCount; ++k)
+				for  k = 0 to c.pointCount
 				
-dim 					 cp  as variant = manifold.points[ k ]
+ 					 cp   = manifold.points[ k ]
 
-dim 					 ccp  as variant = c.points[ k ]
+ 					 ccp   = c.points[ k ]
 
 					ccp.normalImpulse = cp.normalImpulse
 					ccp.tangentImpulse = cp.tangentImpulse
 					ccp.separation = cp.separation
 					' // var r1 = b2Math.SubtractVV( cp.position, b1.m_position )
-dim 					 r1X  as variant = cp.position.x - b1.m_position.x
+ 					 r1X   = cp.position.x - b1.m_position.x
 
-dim 					 r1Y  as variant = cp.position.y - b1.m_position.y
+ 					 r1Y   = cp.position.y - b1.m_position.y
 
 					' // var r2 = b2Math.SubtractVV( cp.position, b2.m_position )
-dim 					 r2X  as variant = cp.position.x - b2.m_position.x
+ 					 r2X   = cp.position.x - b2.m_position.x
 
-dim 					 r2Y  as variant = cp.position.y - b2.m_position.y
+ 					 r2Y   = cp.position.y - b2.m_position.y
 
 					' // ccp.localAnchor1 = b2Math.b2MulTMV(b1.m_R, r1)
 					tVec = ccp.localAnchor1
@@ -120,124 +183,150 @@ dim 					 r2Y  as variant = cp.position.y - b2.m_position.y
 					tMat = b2.m_R
 					tVec.x = r2X * tMat.col1.x + r2Y * tMat.col1.y
 					tVec.y = r2X * tMat.col2.x + r2Y * tMat.col2.y
-dim 					 r1Sqr  as variant = r1X * r1X + r1Y * r1Y
+ 					 r1Sqr   = r1X * r1X + r1Y * r1Y
 
-dim 					 r2Sqr  as variant = r2X * r2X + r2Y * r2Y
+ 					 r2Sqr   = r2X * r2X + r2Y * r2Y
 
 					' // var rn1 = b2Math.b2Dot(r1, normal)
-dim 					 rn1  as variant = r1X*normalX + r1Y*normalY
+ 					 rn1   = r1X*normalX + r1Y*normalY
 
 					' // var rn2 = b2Math.b2Dot(r2, normal)
-dim 					 rn2  as variant = r2X*normalX + r2Y*normalY
+ 					 rn2   = r2X*normalX + r2Y*normalY
 
-dim 					 kNormal  as variant = b1.m_invMass + b2.m_invMass
+ 					 kNormal   = b1.m_invMass + b2.m_invMass
 
 					kNormal += b1.m_invI * (r1Sqr - rn1 * rn1) + b2.m_invI * (r2Sqr - rn2 * rn2)
 					' // b2Settings.b2Assert(kNormal > Number.MIN_VALUE)
 					ccp.normalMass = 1.0 / kNormal
 					' // var tangent = b2Math.b2CrossVF(normal, 1.0)
-dim 					 tangentX  as variant = normalY
-dim 					 tangentY  as variant = -normalX
+ 					 tangentX   = normalY
+ 					 tangentY   = -normalX
 
 					' // var rt1 = b2Math.b2Dot(r1, tangent)
-dim 					 rt1  as variant = r1X*tangentX + r1Y*tangentY
+ 					 rt1   = r1X*tangentX + r1Y*tangentY
 
 					' // var rt2 = b2Math.b2Dot(r2, tangent)
-dim 					 rt2  as variant = r2X*tangentX + r2Y*tangentY
+ 					 rt2   = r2X*tangentX + r2Y*tangentY
 
-dim 					 kTangent  as variant = b1.m_invMass + b2.m_invMass
+ 					 kTangent   = b1.m_invMass + b2.m_invMass
 
 					kTangent += b1.m_invI * (r1Sqr - rt1 * rt1) + b2.m_invI * (r2Sqr - rt2 * rt2)
 					' // b2Settings.b2Assert(kTangent > Number.MIN_VALUE)
 					ccp.tangentMass = 1.0 /  kTangent
 					' //  Setup a velocity bias for restitution.
 					ccp.velocityBias = 0.0
-					if (ccp.separation > 0.0)
-					
+					if (ccp.separation > 0.0) then 
 						ccp.velocityBias = -60.0 * ccp.separation
-					
+					endif
 					' // var vRel = b2Math.b2Dot(c.normal, b2Math.SubtractVV( b2Math.SubtractVV( b2Math.AddVV( v2, b2Math.b2CrossFV(w2, r2)), v1 ), b2Math.b2CrossFV(w1, r1)))
-dim 					 tX  as variant = v2X + (-w2*r2Y) - v1X - (-w1*r1Y)
+ 					 tX   = v2X + (-w2*r2Y) - v1X - (-w1*r1Y)
 
-dim 					 tY  as variant = v2Y + (w2*r2X) - v1Y - (w1*r1X)
+ 					 tY   = v2Y + (w2*r2X) - v1Y - (w1*r1X)
 
 					' // var vRel = b2Dot(c.normal, tX/Y)
-dim 					 vRel  as variant = c.normal.x*tX + c.normal.y*tY
+ 					 vRel   = c.normal.x*tX + c.normal.y*tY
 
-					if (vRel < -b2Settings.b2_velocityThreshold)
-					
+					if (vRel < -b2Settings.b2_velocityThreshold) then 
 						ccp.velocityBias += -c.restitution * vRel
-					
-				
-				++count
-			
-		' // b2Settings.b2Assert(count == me.m_constraintCount)
-	' // ~b2ContactSolver()
+					endif
+				next 'k
+				count +=1
+			next 'j	
+		next 'i
+	' // b2Settings.b2Assert(count == me.m_constraintCount)			
 end
 
+
+
+
+	' // ~b2ContactSolver()
+
 public  sub 	PreSolve()
-
-dim 		tVec
- as variant
-dim 		tVec2
- as variant
-dim 		tMat
- as variant
+dim i as integer
+dim 		tVec  as variant
+dim 		tVec2  as variant
+dim 		tMat  as variant
 		' //  Warm start.
-		for (var i = 0; i < me.m_constraintCount; ++i)
-dim 			 c  as variant = me.m_constraints[ i ]
+		
+	
+dim 			 c  as variant
+dim 			 b1  as variant
+dim 			 b2  as variant
+dim 			 invMass1  as variant 
+dim 			 invI1  as variant
+dim 			 invMass2  as variant 
+dim 			 invI2  as variant
+dim 			 normalX  as variant
+dim 			 normalY  as variant
+dim 			 tangentX  as variant
+dim 			 tangentY  as variant
+dim 			 j  as variant
+dim 			 tCount  as variant
+dim 					 ccp  as variant
+dim 					 PX  as variant 
+dim 					 PY  as variant
+dim 					 r1X  as variant 
+dim 					 r1Y  as variant
 
-dim 			 b1  as variant = c.body1
+dim 					 r2X  as variant
+dim 					 r2Y  as variant 
+dim 					 ccp2  as variant
+		
+		
+		
+		for  i = 0 to me.m_constraintCount
+		 c   = me.m_constraints[ i ]
 
-dim 			 b2  as variant = c.body2
+		 b1   = c.body1
 
-dim 			 invMass1  as variant = b1.m_invMass
+		 b2   = c.body2
 
-dim 			 invI1  as variant = b1.m_invI
+		 invMass1   = b1.m_invMass
 
-dim 			 invMass2  as variant = b2.m_invMass
+		 invI1   = b1.m_invI
 
-dim 			 invI2  as variant = b2.m_invI
+		 invMass2   = b2.m_invMass
+
+		 invI2   = b2.m_invI
 
 			' // var normal = new b2Vec2(c.normal.x, c.normal.y)
-dim 			 normalX  as variant = c.normal.x
+		 normalX   = c.normal.x
 
-dim 			 normalY  as variant = c.normal.y
+		 normalY   = c.normal.y
 
 			' // var tangent = b2Math.b2CrossVF(normal, 1.0)
-dim 			 tangentX  as variant = normalY
+		 tangentX   = normalY
 
-dim 			 tangentY  as variant = -normalX
+		 tangentY   = -normalX
 
-dim 			 j  as variant = 0
+		 j   = 0
 
-dim 			 tCount  as variant = 0
+		 tCount   = 0
 
-			if (b2World.s_enableWarmStarting)
+			if (b2World.s_enableWarmStarting) then 
 			
 				tCount = c.pointCount
-				for (j = 0; j < tCount; ++j)
-				
-dim 					 ccp  as variant = c.points[ j ]
+				for j = 0 to  tCount 
+				 ccp   = c.points[ j ]
 
 					' // var P = b2Math.AddVV( b2Math.MulFV(ccp.normalImpulse, normal), b2Math.MulFV(ccp.tangentImpulse, tangent))
-dim 					 PX  as variant = ccp.normalImpulse*normalX + ccp.tangentImpulse*tangentX
+				 PX   = ccp.normalImpulse*normalX + ccp.tangentImpulse*tangentX
 
-dim 					 PY  as variant = ccp.normalImpulse*normalY + ccp.tangentImpulse*tangentY
+				 PY   = ccp.normalImpulse*normalY + ccp.tangentImpulse*tangentY
 
 					' // var r1 = b2Math.b2MulMV(b1.m_R, ccp.localAnchor1)
 					tMat = b1.m_R
 					tVec = ccp.localAnchor1
-dim 					 r1X  as variant = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+				 r1X   = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
 
-dim 					 r1Y  as variant = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+				 r1Y   = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
 
 					' // var r2 = b2Math.b2MulMV(b2.m_R, ccp.localAnchor2)
 					tMat = b2.m_R
 					tVec = ccp.localAnchor2
-dim 					 r2X  as variant = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+				 r2X   = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
 
-dim 					 r2Y  as variant = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+				 r2Y   = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
 
 					' // b1.m_angularVelocity -= invI1 * b2Math.b2CrossVV(r1, P)
 					b1.m_angularVelocity -= invI1 * (r1X * PY - r1Y * PX)
@@ -251,17 +340,18 @@ dim 					 r2Y  as variant = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
 					b2.m_linearVelocity.y += invMass2 * PY
 					ccp.positionImpulse = 0.0
 				
-			
+					next 'j
+					
 			else
 				tCount = c.pointCount
-				for (j = 0; j < tCount; ++j)
-				
-dim 					 ccp2  as variant = c.points[ j ]
-
+				for j = 0 to  tCount
+					ccp2   = c.points[ j ]
 					ccp2.normalImpulse = 0.0
 					ccp2.tangentImpulse = 0.0
 					ccp2.positionImpulse = 0.0
-				
+				next 'j
+			endif
+			next 'i
 			
 end
 
@@ -269,69 +359,99 @@ public  sub 	SolveVelocityConstraints()
 
 dim 		 j  as variant = 0
 
-dim 		ccp
- as variant
-dim 		r1X
- as variant
-dim 		r1Y
- as variant
-dim 		r2X
- as variant
-dim 		r2Y
- as variant
-dim 		dvX
- as variant
-dim 		dvY
- as variant
-dim 		lambda
- as variant
-dim 		newImpulse
- as variant
-dim 		PX
- as variant
-dim 		PY
- as variant
-dim 		tMat
- as variant
-dim 		tVec
- as variant
-		for (var i = 0; i < me.m_constraintCount; ++i)
-dim 			 c  as variant = me.m_constraints[ i ]
+dim 		ccp  as variant
+dim 		r1X  as variant
+dim 		r1Y  as variant
+dim 		r2X  as variant
+dim 		r2Y  as variant
+dim 		dvX  as variant
+dim 		dvY  as variant
+dim 		lambda  as variant
+dim 		newImpulse  as variant
+dim 		PX  as variant
+dim 		PY  as variant
+dim 		tMat  as variant
+dim 		tVec  as variant
+dim i as integer
 
-dim 			 b1  as variant = c.body1
+dim 			 c  as variant
 
-dim 			 b2  as variant = c.body2
+dim 			 b1  as variant
 
-dim 			 b1_angularVelocity  as variant = b1.m_angularVelocity
+dim 			 b2  as variant
 
-dim 			 b1_linearVelocity  as variant = b1.m_linearVelocity
+dim 			 b1_angularVelocity  as variant
 
-dim 			 b2_angularVelocity  as variant = b2.m_angularVelocity
+dim 			 b1_linearVelocity  as variant
 
-dim 			 b2_linearVelocity  as variant = b2.m_linearVelocity
+dim 			 b2_angularVelocity  as variant
 
-dim 			 invMass1  as variant = b1.m_invMass
+dim 			 b2_linearVelocity  as variant
 
-dim 			 invI1  as variant = b1.m_invI
+dim 			 invMass1  as variant
 
-dim 			 invMass2  as variant = b2.m_invMass
+dim 			 invI1  as variant
 
-dim 			 invI2  as variant = b2.m_invI
+dim 			 invMass2  as variant
 
-			' // var normal = new b2Vec2(c.normal.x, c.normal.y)
-dim 			 normalX  as variant = c.normal.x
+dim 			 invI2  as variant
 
-dim 			 normalY  as variant = c.normal.y
+			' // var normal
+dim 			 normalX  as variant
 
-			' // var tangent = b2Math.b2CrossVF(normal, 1.0)
-dim 			 tangentX  as variant = normalY
+dim 			 normalY  as variant
 
-dim 			 tangentY  as variant = -normalX
+			' // var tangent
+dim 			 tangentX  as variant
+
+dim 			 tangentY  as variant
 
 			' //  Solver normal constraints
-dim 			 tCount  as variant = c.pointCount
+dim 			 tCount  as variant
 
-			for (j = 0; j < tCount; ++j)
+
+dim 				 vn  as variant 
+dim 				 vt  as variant 
+dim 				 maxFriction  as variant 
+dim 				 vt  as variant
+
+		for i = 0 to me.m_constraintCount
+		 c   = me.m_constraints[ i ]
+
+		 b1   = c.body1
+
+		 b2   = c.body2
+
+		 b1_angularVelocity   = b1.m_angularVelocity
+
+		 b1_linearVelocity   = b1.m_linearVelocity
+
+		 b2_angularVelocity   = b2.m_angularVelocity
+
+		 b2_linearVelocity   = b2.m_linearVelocity
+
+		 invMass1   = b1.m_invMass
+
+		 invI1   = b1.m_invI
+
+		 invMass2   = b2.m_invMass
+
+		 invI2   = b2.m_invI
+
+			' // var normal = new b2Vec2(c.normal.x, c.normal.y)
+		 normalX   = c.normal.x
+
+		 normalY   = c.normal.y
+
+			' // var tangent = b2Math.b2CrossVF(normal, 1.0)
+		 tangentX   = normalY
+
+		 tangentY   = -normalX
+
+			' //  Solver normal constraints
+		 tCount   = c.pointCount
+
+			for j = 0 to  tCount
 			
 				ccp = c.points[ j ]
 				' // r1 = b2Math.b2MulMV(b1.m_R, ccp.localAnchor1)
@@ -351,7 +471,7 @@ dim 			 tCount  as variant = c.pointCount
 				dvY = b2_linearVelocity.y + (b2_angularVelocity * r2X) - b1_linearVelocity.y - (b1_angularVelocity * r1X)
 				' //  Compute normal impulse
 				' // var vn = b2Math.b2Dot(dv, normal)
-dim 				 vn  as variant = dvX * normalX + dvY * normalY
+				 vn  as variant = dvX * normalX + dvY * normalY
 
 				lambda = -ccp.normalMass * (vn - ccp.velocityBias)
 				' //  b2Clamp the accumulated impulse
@@ -377,11 +497,11 @@ dim 				 vn  as variant = dvX * normalX + dvY * normalY
 				dvX = b2_linearVelocity.x + (-b2_angularVelocity * r2Y) - b1_linearVelocity.x - (-b1_angularVelocity * r1Y)
 				dvY = b2_linearVelocity.y + (b2_angularVelocity * r2X) - b1_linearVelocity.y - (b1_angularVelocity * r1X)
 				' //  Compute tangent impulse
-dim 				 vt  as variant = dvX*tangentX + dvY*tangentY
+				 vt  as variant = dvX*tangentX + dvY*tangentY
 
 				lambda = ccp.tangentMass * (-vt)
 				' //  b2Clamp the accumulated impulse
-dim 				 maxFriction  as variant = c.friction * ccp.normalImpulse
+				 maxFriction  as variant = c.friction * ccp.normalImpulse
 
 				newImpulse = b2Math.b2Clamp(ccp.tangentImpulse + lambda, -maxFriction, maxFriction)
 				lambda = newImpulse - ccp.tangentImpulse
@@ -398,148 +518,184 @@ dim 				 maxFriction  as variant = c.friction * ccp.normalImpulse
 				b2_linearVelocity.y += invMass2 * PY
 				b2_angularVelocity += invI2 * (r2X * PY - r2Y * PX)
 				ccp.tangentImpulse = newImpulse
-			
-			' //  Solver tangent constraints
-			' //  MOVED ABOVE FOR EFFICIENCY
-			' /* for (j = 0; j < tCount; ++j)
-			
-				ccp = c.points[ j ]
-				' // r1 = b2Math.b2MulMV(b1.m_R, ccp.localAnchor1)
-				tMat = b1.m_R
-				tVec = ccp.localAnchor1
-				r1X = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
-				r1Y = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
-				' // r2 = b2Math.b2MulMV(b2.m_R, ccp.localAnchor2)
-				tMat = b2.m_R
-				tVec = ccp.localAnchor2
-				r2X = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
-				r2Y = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
-				' //  Relative velocity at contact
-				' // var dv = b2.m_linearVelocity + b2Cross(b2.m_angularVelocity, r2) - b1.m_linearVelocity - b2Cross(b1.m_angularVelocity, r1)
-				' // dv =  b2Math.SubtractVV(b2Math.SubtractVV(b2Math.AddVV(b2.m_linearVelocity, b2Math.b2CrossFV(b2.m_angularVelocity, r2)), b1.m_linearVelocity), b2Math.b2CrossFV(b1.m_angularVelocity, r1))
-				dvX = b2_linearVelocity.x + (-b2_angularVelocity * r2Y) - b1_linearVelocity.x - (-b1_angularVelocity * r1Y)
-				dvY = b2_linearVelocity.y + (b2_angularVelocity * r2X) - b1_linearVelocity.y - (b1_angularVelocity * r1X)
-				' //  Compute tangent impulse
-dim 				 vt  as variant = dvX*tangentX + dvY*tangentY
-
-				lambda = ccp.tangentMass * (-vt)
-				' //  b2Clamp the accumulated impulse
-dim 				 maxFriction  as variant = c.friction * ccp.normalImpulse
-
-				newImpulse = b2Math.b2Clamp(ccp.tangentImpulse + lambda, -maxFriction, maxFriction)
-				lambda = newImpulse - ccp.tangentImpulse
-				' //  Apply contact impulse
-				' // P = b2Math.MulFV(lambda, tangent)
-				PX = lambda * tangentX
-				PY = lambda * tangentY
-				' // b1.m_linearVelocity.Subtract( b2Math.MulFV( invMass1, P ) )
-				b1_linearVelocity.x -= invMass1 * PX
-				b1_linearVelocity.y -= invMass1 * PY
-				b1_angularVelocity -= invI1 * (r1X * PY - r1Y * PX)
-				' // b2.m_linearVelocity.Add( b2Math.MulFV( invMass2, P ) )
-				b2_linearVelocity.x += invMass2 * PX
-				b2_linearVelocity.y += invMass2 * PY
-				b2_angularVelocity += invI2 * (r2X * PY - r2Y * PX)
-				ccp.tangentImpulse = newImpulse
-			*/
-			' //  Update angular velocity
-			b1.m_angularVelocity = b1_angularVelocity
-			b2.m_angularVelocity = b2_angularVelocity
+			next 'j
+		
+		b1.m_angularVelocity = b1_angularVelocity
+		b2.m_angularVelocity = b2_angularVelocity
+		next 'i
 end
 
 public  sub 	SolvePositionConstraints(beta as variant) as variant ''funcion
-dim 		 minSeparation  as variant = 0.0
+	dim	 minSeparation  as variant = 0.0
 
-dim 		tMat
- as variant
-dim 		tVec
- as variant
-		for (var i = 0; i < me.m_constraintCount; ++i)
-dim 			 c  as variant = me.m_constraints[ i ]
+dim 		tMat  as variant
+dim 		tVec  as variant
 
-dim 			 b1  as variant = c.body1
+dim i as integer
 
-dim 			 b2  as variant = c.body2
 
-dim 			 b1_position  as variant = b1.m_position
+'for i
+dim 			 c  as variant 
 
-dim 			 b1_rotation  as variant = b1.m_rotation
+dim 			 b1  as variant 
 
-dim 			 b2_position  as variant = b2.m_position
+dim 			 b2  as variant 
 
-dim 			 b2_rotation  as variant = b2.m_rotation
+dim 			 b1_position  as variant 
 
-dim 			 invMass1  as variant = b1.m_invMass
+dim 			 b1_rotation  as variant 
 
-dim 			 invI1  as variant = b1.m_invI
+dim 			 b2_position  as variant 
 
-dim 			 invMass2  as variant = b2.m_invMass
+dim 			 b2_rotation  as variant 
 
-dim 			 invI2  as variant = b2.m_invI
+dim 			 invMass1  as variant 
 
-			' // var normal = new b2Vec2(c.normal.x, c.normal.y)
-dim 			 normalX  as variant = c.normal.x
+dim 			 invI1  as variant 
 
-dim 			 normalY  as variant = c.normal.y
+dim 			 invMass2  as variant 
 
-			' // var tangent = b2Math.b2CrossVF(normal, 1.0)
-dim 			 tangentX  as variant = normalY
+dim 			 invI2  as variant 
 
-dim 			 tangentY  as variant = -normalX
+			' // var normal 
+dim 			 normalX  as variant 
+
+dim 			 normalY  as variant 
+
+			' // var tangent 
+dim 			 tangentX  as variant 
+
+dim 			 tangentY  as variant 
 
 			' //  Solver normal constraints
-dim 			 tCount  as variant = c.pointCount
+dim 			 tCount  as variant 
 
-			for (var j = 0; j < tCount; ++j)
+
+'for j
+dim 				 ccp  as variant 
+dim 				 r1X  as variant 
+dim 				 r1Y  as variant 
+dim 				 r2X  as variant 
+dim 				 r2Y  as variant 
+				' // var p1 
+dim 				 p1X  as variant 
+
+dim 				 p1Y  as variant 
+
+				' // var p2 
+dim 				 p2X  as variant 
+
+dim 				 p2Y  as variant 
+
+				' // var dp 
+dim 				 dpX  as variant 
+
+dim 				 dpY  as variant 
+
+				' //  Approximate the current separation.
+				' // var separation 
+dim 				 separation  as variant 
+
+				' //  Prevent large corrections and allow slop.
+dim 				 C  as variant 
+
+				' //  Compute normal impulse
+dim 				 dImpulse  as variant 
+
+				' //  b2Clamp the accumulated impulse
+dim 				 impulse0  as variant 
+
+
+				' // var impulse 
+dim 				 impulseX  as variant 
+
+dim 				 impulseY  as variant 
+		for  i = 0 to me.m_constraintCount
+		 c  = me.m_constraints[ i ]
+
+		 b1  = c.body1
+
+		 b2  = c.body2
+
+		 b1_position  = b1.m_position
+
+		 b1_rotation  = b1.m_rotation
+
+		 b2_position  = b2.m_position
+
+		 b2_rotation  = b2.m_rotation
+
+		 invMass1  = b1.m_invMass
+
+		 invI1  = b1.m_invI
+
+		 invMass2  = b2.m_invMass
+
+		 invI2  = b2.m_invI
+
+			' // var normal = new b2Vec2(c.normal.x, c.normal.y)
+		 normalX  = c.normal.x
+
+		 normalY  = c.normal.y
+
+			' // var tangent = b2Math.b2CrossVF(normal, 1.0)
+		 tangentX  = normalY
+
+		 tangentY  = -normalX
+
+			' //  Solver normal constraints
+		 tCount  = c.pointCount
+
+			for  j = 0 to tCount
 			
-dim 				 ccp  as variant = c.points[ j ]
+			 ccp   = c.points[ j ]
 
 				' // r1 = b2Math.b2MulMV(b1.m_R, ccp.localAnchor1)
 				tMat = b1.m_R
 				tVec = ccp.localAnchor1
-dim 				 r1X  as variant = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
-dim 				 r1Y  as variant = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+			 r1X   = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+			 r1Y   = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
 				' // r2 = b2Math.b2MulMV(b2.m_R, ccp.localAnchor2)
 				tMat = b2.m_R
 				tVec = ccp.localAnchor2
-dim 				 r2X  as variant = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
-dim 				 r2Y  as variant = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+			 r2X   = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+			 r2Y   = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
 				' // var p1 = b2Math.AddVV(b1.m_position, r1)
-dim 				 p1X  as variant = b1_position.x + r1X
+			 p1X   = b1_position.x + r1X
 
-dim 				 p1Y  as variant = b1_position.y + r1Y
+			 p1Y   = b1_position.y + r1Y
 
 				' // var p2 = b2Math.AddVV(b2.m_position, r2)
-dim 				 p2X  as variant = b2_position.x + r2X
+			 p2X   = b2_position.x + r2X
 
-dim 				 p2Y  as variant = b2_position.y + r2Y
+			 p2Y   = b2_position.y + r2Y
 
 				' // var dp = b2Math.SubtractVV(p2, p1)
-dim 				 dpX  as variant = p2X - p1X
+			 dpX   = p2X - p1X
 
-dim 				 dpY  as variant = p2Y - p1Y
+			 dpY   = p2Y - p1Y
 
 				' //  Approximate the current separation.
 				' // var separation = b2Math.b2Dot(dp, normal) + ccp.separation
-dim 				 separation  as variant = (dpX*normalX + dpY*normalY) + ccp.separation
+			 separation   = (dpX*normalX + dpY*normalY) + ccp.separation
 
 				' //  Track max constraint error.
 				minSeparation = b2Math.b2Min(minSeparation, separation)
 				' //  Prevent large corrections and allow slop.
-dim 				 C  as variant = beta * b2Math.b2Clamp(separation + b2Settings.b2_linearSlop, -b2Settings.b2_maxLinearCorrection, 0.0)
+			 C   = beta * b2Math.b2Clamp(separation + b2Settings.b2_linearSlop, -b2Settings.b2_maxLinearCorrection, 0.0)
 
 				' //  Compute normal impulse
-dim 				 dImpulse  as variant = -ccp.normalMass * C
+			 dImpulse   = -ccp.normalMass * C
 
 				' //  b2Clamp the accumulated impulse
-dim 				 impulse0  as variant = ccp.positionImpulse
+			 impulse0   = ccp.positionImpulse
 
 				ccp.positionImpulse = b2Math.b2Max(impulse0 + dImpulse, 0.0)
 				dImpulse = ccp.positionImpulse - impulse0
 				' // var impulse = b2Math.MulFV( dImpulse, normal )
-dim 				 impulseX  as variant = dImpulse * normalX
+			 impulseX   = dImpulse * normalX
 
-dim 				 impulseY  as variant = dImpulse * normalY
+			 impulseY   = dImpulse * normalY
 
 				' // b1.m_position.Subtract( b2Math.MulFV( invMass1, impulse ) )
 				b1_position.x -= invMass1 * impulseX
@@ -551,31 +707,37 @@ dim 				 impulseY  as variant = dImpulse * normalY
 				b2_position.y += invMass2 * impulseY
 				b2_rotation += invI2 * (r2X * impulseY - r2Y * impulseX)
 				b2.m_R.Set(b2_rotation)
-			
+			next 'j
 			' //  Update body rotations
 			b1.m_rotation = b1_rotation
 			b2.m_rotation = b2_rotation
+		next 'i
 		return minSeparation >= -b2Settings.b2_linearSlop
- '' TODO: posible funcion (revisar)
+
 
 end
 
 public  sub 	PostSolve()
+dim i,j as integer
+dim 			 c  as variant
 
-		for (var i = 0; i < me.m_constraintCount; ++i)
-dim 			 c  as variant = me.m_constraints[ i ]
+dim 			 m  as variant 
 
-dim 			 m  as variant = c.manifold
+dim 				 mPoint  as variant
+dim 				 cPoint  as variant
 
-			for (var j = 0; j < c.pointCount; ++j)
-			
-dim 				 mPoint  as variant = m.points[j]
+		for  i = 0 to me.m_constraintCount
+			 c  = me.m_constraints[ i ]
 
-dim 				 cPoint  as variant = c.points[j]
+			 m  = c.manifold
 
+			for j = 0 to c.pointCount
+				 mPoint  = m.points[j]
+				 cPoint  = c.points[j]
 				mPoint.normalImpulse = cPoint.normalImpulse
 				mPoint.tangentImpulse = cPoint.tangentImpulse
-			
-	m_allocator: null
-Public s: new Array(), as new rray(),
-	m_constraintCount: 0
+next 'j 
+next ' i
+
+end	
+		

@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+'  you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,22 +16,20 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2Conservative  as variant = Class.create()
 
-b2Conservative.prototype = 
-	' //  Temp vars
-end
 
-public  sub 	initialize()
  
-b2Conservative.R1 = new b2Mat22()
-b2Conservative.R2 = new b2Mat22()
-b2Conservative.x1 = new b2Vec2()
-b2Conservative.x2 = new b2Vec2()
+public R1 as new b2Mat22()
+public R2 as new b2Mat22()
+public x1 as new b2Vec2()
+public x2 as new b2Vec2()
+
+public  sub _new()
+
 end
 
 public  sub Conservative (shape1 as variant, shape2 as variant) as variant ''funcio as variant ''funcion
-dim 		 body1  as variant = shape1.GetBody()
+	 di	 body1  as variant = shape1.GetBody()
 
 dim 		 body2  as variant = shape2.GetBody()
 
@@ -89,13 +87,6 @@ dim 		 p2Y  as variant = p2StartY
 		' // float32 a2 = a2Start
 dim 		 a2  as variant = a2Start
 
-		' // b2Mat22 b2Conservative.R1(a1), b2Conservative.R2(a2)
-		b2Conservative.R1.Set(a1)
-		b2Conservative.R2.Set(a2)
-		' // shape1->QuickSync(p1, b2Conservative.R1)
-		shape1.QuickSync(p1, b2Conservative.R1)
-		' // shape2->QuickSync(p2, b2Conservative.R2)
-		shape2.QuickSync(p2, b2Conservative.R2)
 		' // float32 s1 = 0.0f
 dim 		 s1  as variant = 0.0
 
@@ -103,24 +94,38 @@ dim 		 s1  as variant = 0.0
 dim 		 maxIterations  as variant = 10
 
 		' // b2Vec2 d
-dim 		dX
- as variant
-dim 		dY
- as variant
+dim 		dX  as variant
+dim 		dY  as variant
 		' // float32 invRelativeVelocity = 0.0f
 dim 		 invRelativeVelocity  as variant = 0.0
 
 		' // bool hit = true
 dim 		 hit  as variant = true
+dim 			 distance  as variant
 
-		' // b2Vec2 b2Conservative.x1, b2Conservative.x2
- moved to static var
-		for (var iter = 0; iter < maxIterations; ++iter)
+dim iter as integer
+
+
+dim 				 dLen  as variant
+dim 				 relativeVelocity  as variant
+dim 			 ds  as variant 
+dim 			 s2  as variant 
+dim 			 length  as variant
+
+		' // b2Mat22 b2Conservative.R1(a1), b2Conservative.R2(a2)
+		b2Conservative.R1.Set(a1)
+		b2Conservative.R2.Set(a2)
+		' // shape1->QuickSync(p1, b2Conservative.R1)
+		shape1.QuickSync(p1, b2Conservative.R1)
+		' // shape2->QuickSync(p2, b2Conservative.R2)
+		shape2.QuickSync(p2, b2Conservative.R2)
+		' // b2Vec2 b2Conservative.x1, b2Conservative.x2  moved to static var
+		for  iter to   maxIterations
 			' //  Get the accurate distance between shapes.
 			' // float32 distance = b2Distance.Distance(&b2Conservative.x1, &b2Conservative.x2, shape1, shape2)
-dim 			 distance  as variant = b2Distance.Distance(b2Conservative.x1, b2Conservative.x2, shape1, shape2)
+ 			 distance   = b2Distance.Distance(b2Conservative.x1, b2Conservative.x2, shape1, shape2)
 
-			if (distance < b2Settings.b2_linearSlop)
+			if (distance < b2Settings.b2_linearSlop) then 
 			
 				if (iter == 0)
 				
@@ -131,41 +136,47 @@ dim 			 distance  as variant = b2Distance.Distance(b2Conservative.x1, b2Conserva
 					hit = true
 				
 				break
+				endif
+			endif
 			
-			if (iter == 0)
+			
+			if (iter = 0) then 
 			
 				' // b2Vec2 d = b2Conservative.x2 - b2Conservative.x1
 				dX = b2Conservative.x2.x - b2Conservative.x1.x
 				dY = b2Conservative.x2.y - b2Conservative.x1.y
 				' // d.Normalize()
-dim 				 dLen  as variant = Math.sqrt(dX*dX + dY*dY)
+				 dLen   = Math.sqrt(dX*dX + dY*dY)
 
 				' // float32 relativeVelocity = b2Dot(d, v1 - v2) + b2Abs(omega1) * r1 + b2Abs(omega2) * r2
-dim 				 relativeVelocity  as variant = (dX*(v1X-v2X) + dY*(v1Y - v2Y)) + Math.abs(omega1) * r1 + Math.abs(omega2) * r2
+				 relativeVelocity   = (dX*(v1X-v2X) + dY*(v1Y - v2Y)) + Math.abs(omega1) * r1 + Math.abs(omega2) * r2
 
 				if (Math.abs(relativeVelocity) < Number.MIN_VALUE)
 				
 					hit = false
 					break
+				endif
 				
 				invRelativeVelocity = 1.0 / relativeVelocity
+			endif
 			
 			' //  Get the conservative movement.
 			' // float32 ds = distance * invRelativeVelocity
-dim 			 ds  as variant = distance * invRelativeVelocity
+			 ds   = distance * invRelativeVelocity
 
 			' // float32 s2 = s1 + ds
-dim 			 s2  as variant = s1 + ds
+			 s2   = s1 + ds
 
-			if (s2 < 0.0 || 1.0 < s2)
+			if (s2 < 0.0 or | 1.0 < s2)
 			
 				hit = false
 				break
-			
+			endif
 			if (s2 < (1.0 + 100.0 * Number.MIN_VALUE) * s1)
 			
 				hit = true
 				break
+			endif
 			
 			s1 = s2
 			' //  Move forward conservatively.
@@ -183,19 +194,22 @@ dim 			 s2  as variant = s1 + ds
 			b2Conservative.R2.Set(a2)
 			shape1.QuickSync(p1, b2Conservative.R1)
 			shape2.QuickSync(p2, b2Conservative.R2)
-		if (hit)
+		next
+		
+		
+		if (hit) then
 			' //  Hit, move bodies to safe position and re-sync shapes.
 			' // b2Vec2 d = b2Conservative.x2 - b2Conservative.x1
 			dX = b2Conservative.x2.x - b2Conservative.x1.x
 			dY = b2Conservative.x2.y - b2Conservative.x1.y
 			' // float32 length = d.Length()
-dim 			 length  as variant = Math.sqrt(dX*dX + dY*dY)
+			 length   =  sqrt(dX*dX + dY*dY)
 
 			if (length > FLT_EPSILON)
 			
 				d *= b2_linearSlop / length
-			
-			if (body1.IsStatic())
+			endif
+			if (body1.IsStatic()) then 
 			
 				' // body1.m_position = p1
 				body1.m_position.x = p1X
@@ -206,11 +220,14 @@ dim 			 length  as variant = Math.sqrt(dX*dX + dY*dY)
 				' // body1.m_position = p1 - d
 				body1.m_position.x = p1X - dX
 				body1.m_position.y = p1Y - dY
+			endif
+			
 			
 			body1.m_rotation = a1
 			body1.m_R.Set(a1)
 			body1.QuickSyncShapes()
-			if (body2.IsStatic())
+			
+			if (body2.IsStatic()) then 
 			
 				' // body2->m_position = p2
 				body2.m_position.x = p2X
@@ -221,6 +238,7 @@ dim 			 length  as variant = Math.sqrt(dX*dX + dY*dY)
 				' // body2->m_position = p2 + d
 				body2.m_position.x = p2X + dX
 				body2.m_position.y = p2Y + dY
+			endif
 			
 			' // body2.m_position = p2 + d
 			body2.m_position.x = p2X + dX
@@ -229,10 +247,10 @@ dim 			 length  as variant = Math.sqrt(dX*dX + dY*dY)
 			body2.m_R.Set(a2)
 			body2.QuickSyncShapes()
 			return true
- '' TODO: posible funcion (revisar)
+		endif
 
 		' //  No hit, restore shapes.
 		shape1.QuickSync(body1.m_position, body1.m_R)
 		shape2.QuickSync(body2.m_position, body2.m_R)
 		return false
- '' TODO: posible funcion (revisar)
+end
