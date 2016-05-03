@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -15,29 +15,25 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2Jacobian  as variant = Class.create()
 
-b2Jacobian.prototype = 
-Public 1: new b2Vec2(), as new 2Vec2(),
-	angular1: null
-Public 2: new b2Vec2(), as new 2Vec2(),
-	angular2: null
-end
+Public 	linear1 as variant= new b2Vec2()
+public	angular1 as varoamt= null
+Public 	linear2 as varoamt= new b2Vec2()
+public angular2 as varoamt= null
+
 
 public  sub 	SetZero()
-
-		 me.linear1.SetZero()
- me.angular1 = 0.0
-		 me.linear2.SetZero()
- me.angular2 = 0.0
+	 me.linear1.SetZero()
+     me.angular1 = 0.0
+	 me.linear2.SetZero()
+     me.angular2 = 0.0
 end
 
 public  sub 	Set(x1 as variant, a1 as variant, x2 as variant, a2 as variant)
-
 		 me.linear1.SetV(x1)
- me.angular1 = a1
+         me.angular1 = a1
 		 me.linear2.SetV(x2)
- me.angular2 = a2
+         me.angular2 = a2
 end
 
 public  sub 	Compute(x1 as variant, a1 as variant, x2 as variant, a2 as variant) as variant ''funcio as variant ''funcion
@@ -49,9 +45,8 @@ public  sub 	Compute(x1 as variant, a1 as variant, x2 as variant, a2 as variant)
 
 end
 
-public  sub 	initialize()
- 
+public  sub _new()
 		' //  initialize instance variables for references
 		 me.linear1 = new b2Vec2()
 		 me.linear2 = new b2Vec2()
-		' // 
+end

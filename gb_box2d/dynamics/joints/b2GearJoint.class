@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,21 +16,47 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2GearJoint  as variant = Class.create()
 
-inherits , b2Joint
-inherits 
-end
 
-public  sub 	GetAnchor1() as variant ''funcio as variant ''funcion
+inherits  b2Joint
+
+
+public m_ground1 as variant= null
+public m_ground2 as variant= null
+
+ // One of these is NULL.
+public m_revolute1 as variant= null
+public m_prismatic1 as variant= null
+
+ // One of these is NULL.
+public m_revolute2 as variant= null
+public m_prismatic2 as variant= null
+
+public m_groundAnchor1 as variant= new b2Vec2()
+public m_groundAnchor2 as variant= new b2Vec2()
+
+public m_localAnchor1 as variant= new b2Vec2()
+public m_localAnchor2 as variant= new b2Vec2()
+
+public m_J as variant= new b2Jacobian()
+
+public m_constant as variant= null
+public m_ratio as variant= null
+
+' // Effective mass
+public m_mass as variant= null
+
+' // Impulse for accumulation/warm starting.
+public m_impulse as variant= null
+
+
+public  sub	GetAnchor1() as variant ''funcio as variant ''funcion
 		' // return me.m_body1.m_position + b2MulMV( me.m_body1.m_R, me.m_localAnchor1)
  '' TODO: posible funcion (revisar)
 
 dim 		 tMat  as variant = me.m_body1.m_R
 
-		return new b2Vec2(	 me.m_body1.m_position.x + (tMat.col1.x * me.m_localAnchor1.x + tMat.col2.x * me.m_localAnchor1.y), '' TODO: posible funcion (revisar)
-
-							 me.m_body1.m_position.y + (tMat.col1.y * me.m_localAnchor1.x + tMat.col2.y * me.m_localAnchor1.y))
+		return new b2Vec2(	 me.m_body1.m_position.x + (tMat.col1.x * me.m_localAnchor1.x + tMat.col2.x * me.m_localAnchor1.y), 							 me.m_body1.m_position.y + (tMat.col1.y * me.m_localAnchor1.x + tMat.col2.y * me.m_localAnchor1.y))
 end
 
 public  sub 	GetAnchor2() as variant ''funcio as variant ''funcion
@@ -39,9 +65,7 @@ public  sub 	GetAnchor2() as variant ''funcio as variant ''funcion
 
 dim 		 tMat  as variant = me.m_body2.m_R
 
-		return new b2Vec2(	 me.m_body2.m_position.x + (tMat.col1.x * me.m_localAnchor2.x + tMat.col2.x * me.m_localAnchor2.y), '' TODO: posible funcion (revisar)
-
-							 me.m_body2.m_position.y + (tMat.col1.y * me.m_localAnchor2.x + tMat.col2.y * me.m_localAnchor2.y))
+		return new b2Vec2(	 me.m_body2.m_position.x + (tMat.col1.x * me.m_localAnchor2.x + tMat.col2.x * me.m_localAnchor2.y), 							 me.m_body2.m_position.y + (tMat.col1.y * me.m_localAnchor2.x + tMat.col2.y * me.m_localAnchor2.y))
 end
 
 public  sub 	GetReactionForce(invTimeStep as variant) as variant ''funcion
@@ -59,13 +83,14 @@ end
 
 public  sub 	GetRatio() as variant ''funcion
 		return me.m_ratio
- '' TODO: posible funcion (revisar)
-
-	' // --------------- Internals Below -------------------
 end
 
-public  sub 	initialize(def as variant)
 
+	' // --------------- Internals Below -------------------
+
+public  sub _new(def as variant)
+dim 		coordinate1  as variant
+dim 		coordinate2  as variant
 		' //  The constructor for b2Joint
 		' //  initialize instance variables for references
 		 me.m_node1 = new b2JointNode()
@@ -97,13 +122,10 @@ public  sub 	initialize(def as variant)
 		 me.m_prismatic1 = null
 		 me.m_revolute2 = null
 		 me.m_prismatic2 = null
-dim 		coordinate1
- as variant
-dim 		coordinate2
- as variant
+
 		 me.m_ground1 = def.joint1.m_body1
 		 me.m_body1 = def.joint1.m_body2
-		if (def.joint1.m_type == b2Joint.e_revoluteJoint)
+		if (def.joint1.m_type = b2Joint.e_revoluteJoint) then 
 			 me.m_revolute1 = def.joint1
 			 me.m_groundAnchor1.SetV( me.m_revolute1.m_localAnchor1 )
 			 me.m_localAnchor1.SetV( me.m_revolute1.m_localAnchor2 )
@@ -113,9 +135,11 @@ dim 		coordinate2
 			 me.m_groundAnchor1.SetV( me.m_prismatic1.m_localAnchor1 )
 			 me.m_localAnchor1.SetV( me.m_prismatic1.m_localAnchor2 )
 			coordinate1 = me.m_prismatic1.GetJointTranslation()
+		endif
+		
 		 me.m_ground2 = def.joint2.m_body1
 		 me.m_body2 = def.joint2.m_body2
-		if (def.joint2.m_type == b2Joint.e_revoluteJoint)
+		if (def.joint2.m_type = b2Joint.e_revoluteJoint) them 
 			 me.m_revolute2 = def.joint2
 			 me.m_groundAnchor2.SetV( me.m_revolute2.m_localAnchor1 )
 			 me.m_localAnchor2.SetV( me.m_revolute2.m_localAnchor2 )
@@ -125,6 +149,8 @@ dim 		coordinate2
 			 me.m_groundAnchor2.SetV( me.m_prismatic2.m_localAnchor1 )
 			 me.m_localAnchor2.SetV( me.m_prismatic2.m_localAnchor2 )
 			coordinate2 = me.m_prismatic2.GetJointTranslation()
+		endif
+			
 		 me.m_ratio = def.ratio
 		 me.m_constant = coordinate1 + me.m_ratio * coordinate2
 		 me.m_impulse = 0.0
@@ -141,24 +167,17 @@ dim 		 b1  as variant = me.m_body1
 dim 		 b2  as variant = me.m_body2
 
 		' //  temp vars
-dim 		ugX
- as variant
-dim 		ugY
- as variant
-dim 		rX
- as variant
-dim 		rY
- as variant
-dim 		tMat
- as variant
-dim 		tVec
- as variant
-dim 		crug
- as variant
+dim 		ugX  as variant
+dim 		ugY  as variant
+dim 		rX  as variant
+dim 		rY  as variant
+dim 		tMat  as variant
+dim 		tVec  as variant
+dim 		crug  as variant
 dim 		 K  as variant = 0.0
 
 		 me.m_J.SetZero()
-		if ( me.m_revolute1)
+		if ( me.m_revolute1) then 
 			 me.m_J.angular1 = -1.0
 			K += b1.m_invI
 		else
@@ -177,7 +196,9 @@ dim 		 K  as variant = 0.0
 			 me.m_J.linear1.Set(-ugX, -ugY)
 			 me.m_J.angular1 = -crug
 			K += b1.m_invMass + b1.m_invI * crug * crug
-		if ( me.m_revolute2)
+		endif
+		
+		if ( me.m_revolute2) then 
 			 me.m_J.angular2 = - me.m_ratio
 			K += me.m_ratio * me.m_ratio * b2.m_invI
 		else
@@ -196,6 +217,8 @@ dim 		 K  as variant = 0.0
 			 me.m_J.linear2.Set(- me.m_ratio*ugX, - me.m_ratio*ugY)
 			 me.m_J.angular2 = - me.m_ratio * crug
 			K += me.m_ratio * me.m_ratio * (b2.m_invMass + b2.m_invI * crug * crug)
+		endif
+		
 		' //  Compute effective mass.
 		' // b2Settings.b2Assert(K > 0.0)
 		 me.m_mass = 1.0 / K
@@ -216,8 +239,7 @@ dim 		 b1  as variant = me.m_body1
 
 dim 		 b2  as variant = me.m_body2
 
-dim 		 Cdot  as variant = me.m_J.Compute(	b1.m_linearVelocity, b1.m_angularVelocity,
-										b2.m_linearVelocity, b2.m_angularVelocity)
+dim 		 Cdot  as variant = me.m_J.Compute(	b1.m_linearVelocity, b1.m_angularVelocity,b2.m_linearVelocity, b2.m_angularVelocity)
 dim 		 impulse  as variant = - me.m_mass * Cdot
 
 		 me.m_impulse += impulse
@@ -236,21 +258,28 @@ dim 		 b1  as variant = me.m_body1
 
 dim 		 b2  as variant = me.m_body2
 
-dim 		coordinate1
- as variant
-dim 		coordinate2
- as variant
-		if ( me.m_revolute1)
+dim 		coordinate1  as variant
+dim 		coordinate2  as variant
+
+
+dim 		 C  as variant
+dim 		 impulse  as variant
+
+		if ( me.m_revolute1) then 
 			coordinate1 = me.m_revolute1.GetJointAngle()
 		else
 			coordinate1 = me.m_prismatic1.GetJointTranslation()
+		endif
+		
 		if ( me.m_revolute2)
 			coordinate2 = me.m_revolute2.GetJointAngle()
 		else
 			coordinate2 = me.m_prismatic2.GetJointTranslation()
-dim 		 C  as variant = me.m_constant - (coordinate1 + me.m_ratio * coordinate2)
+		endif
+		
+	 C  = me.m_constant - (coordinate1 + me.m_ratio * coordinate2)
 
-dim 		 impulse  as variant = - me.m_mass * C
+	 impulse  = - me.m_mass * C
 
 		b1.m_position.x += b1.m_invMass * impulse * me.m_J.linear1.x
 		b1.m_position.y += b1.m_invMass * impulse * me.m_J.linear1.y
@@ -261,24 +290,5 @@ dim 		 impulse  as variant = - me.m_mass * C
 		b1.m_R.Set(b1.m_rotation)
 		b2.m_R.Set(b2.m_rotation)
 		return linearError < b2Settings.b2_linearSlop
- '' TODO: posible funcion (revisar)
 
-	m_ground1: null
-	m_ground2: null
-	' //  One of these is NULL.
-	m_revolute1: null
-	m_prismatic1: null
-	' //  One of these is NULL.
-	m_revolute2: null
-	m_prismatic2: null
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-Public J: new b2Jacobian(), as new 2Jacobian(),
-	m_constant: null
-	m_ratio: null
-	' //  Effective mass
-	m_mass: null
-	' //  Impulse for accumulation/warm starting.
-	m_impulse: null)
+end

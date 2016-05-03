@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ 'you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -25,18 +25,19 @@
 ' // 
 ' //  RESTRICITON: The revolute and prismatic joints must be attached to
 ' //  a fixed body (which must be body1 on those joints).
-dim  b2GearJointDef  as variant = Class.create()
 
-inherits , b2JointDef
-inherits 
-end
 
-public  sub 	initialize()
+inherits  b2JointDef
+
+	public joint1 as variant= null
+	public joint2 as variant= null
+	 public ratio as variant= null
+
+public  sub 	_new()
 
 		 me.type = b2Joint.e_gearJoint
 		 me.joint1 = null
 		 me.joint2 = null
 		 me.ratio = 1.0
-	joint1: null
-	joint2: null
-	ratio: null)
+end
+

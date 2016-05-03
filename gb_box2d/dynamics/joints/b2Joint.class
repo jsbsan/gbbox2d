@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,63 +16,80 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2Joint  as variant = Class.create()
 
-b2Joint.prototype = 
-end
+public m_type as variant= 0
+public m_prev as variant= null
+public m_next as variant= null
+Public m_node1 as variant= new b2JointNode()
+Public m_node2 as variant= new b2JointNode()
+public m_body1 as variant= null
+public m_body2 as variant= null
+public m_islandFlag as variant= null
+public m_collideConnected as variant= null
+public m_userData as variant= null
+
+public e_unknownJoint as integer= 0
+public e_revoluteJoint as integer= 1
+public e_prismaticJoint as integer= 2
+public e_distanceJoint as integer= 3
+public e_pulleyJoint as integer= 4
+public e_mouseJoint as integer= 5
+public e_gearJoint as integer= 6
+public e_inactiveLimit as integer= 0
+public e_atLowerLimit as integer= 1
+public e_atUpperLimit as integer= 2
+public e_equalLimits as integer= 3
+
+
 
 public  sub 	GetType() as variant ''funcion
 		return me.m_type
- '' TODO: posible funcion (revisar)
 
 end
 
-public  sub 	GetAnchor1()
-return null '' TODO: posible funcion (revisar)
+public  sub 	GetAnchor1() as variant
+return null 
 
 end
 
-public  sub 	GetAnchor2()
-return null '' TODO: posible funcion (revisar)
+public  sub 	GetAnchor2() as variant
+return null 
 
 end
 
-public  sub 	GetReactionForce(invTimeStep as variant)
-return null '' TODO: posible funcion (revisar)
+public  sub 	GetReactionForce(invTimeStep as variant) as variant
+return null 
 
 end
 
-public  sub 	GetReactionTorque(invTimeStep as variant)
-return 0.0 '' TODO: posible funcion (revisar)
+public  sub 	GetReactionTorque(invTimeStep as variant) as variant
+return 0.0
 
 end
 
-public  sub 	GetBody1() as variant ''funcion
+public  sub 	GetBody1() as variant 
 		return me.m_body1
- '' TODO: posible funcion (revisar)
-
-end
+ end
 
 public  sub 	GetBody2() as variant ''funcion
 		return me.m_body2
- '' TODO: posible funcion (revisar)
 
 end
 
 public  sub 	GetNext() as variant ''funcion
 		return me.m_next
- '' TODO: posible funcion (revisar)
 
 end
 
 public  sub 	GetUserData() as variant ''funcion
 		return me.m_userData
- '' TODO: posible funcion (revisar)
-
-	' // --------------- Internals Below -------------------
+ 
 end
 
-public  sub 	initialize(def as variant)
+
+	' // --------------- Internals Below -------------------
+
+public  sub _new(def as variant)
 
 		' //  initialize instance variables for references
 		 me.m_node1 = new b2JointNode()
@@ -102,28 +119,18 @@ public  sub 	PreparePositionSolver()
 
 end
 
-public  sub 	SolvePositionConstraints()
+public  sub 	SolvePositionConstraints() as variant
 return false '' TODO: posible funcion (revisar)
+end
 
-	m_type: 0
-	m_prev: null
-	m_next: null
-Public 1: new b2JointNode(), as new 2JointNode(),
-Public 2: new b2JointNode(), as new 2JointNode(),
-	m_body1: null
-	m_body2: null
-	m_islandFlag: null
-	m_collideConnected: null
-	m_userData: null
 	' //  ENUMS
 	' //  enum b2JointType
 	' //  enum b2LimitState
-end
 
 public  sub Create (def as variant, allocator as variant) as variant ''funcion
 dim 		 joint  as variant = null
 
-		switch (def.type)
+	select case  def.type
 		case b2Joint.e_distanceJoint:
 			
 				' // void* mem = allocator->Allocate(sizeof(b2DistanceJoint))
@@ -163,45 +170,38 @@ dim 		 joint  as variant = null
 		default:
 			' // b2Settings.b2Assert(false)
 			break
+		end select
+		
 		return joint
- '' TODO: posible funcion (revisar)
 
 end
 
 public  sub Destroy (joint as variant, allocator as variant)
 
 		' /* joint->~b2Joint()
-		switch (joint.m_type)
-		case b2Joint.e_distanceJoint:
-			allocator->Free(joint, sizeof(b2DistanceJoint))
+	selec case  joint.m_type
+		case b2Joint.e_distanceJoint
+			allocator.Free(joint, sizeof(b2DistanceJoint))
 			break
-		case b2Joint.e_mouseJoint:
-			allocator->Free(joint, sizeof(b2MouseJoint))
+		case b2Joint.e_mouseJoint
+			allocator.Free(joint, sizeof(b2MouseJoint))
 			break
-		case b2Joint.e_prismaticJoint:
-			allocator->Free(joint, sizeof(b2PrismaticJoint))
+		case b2Joint.e_prismaticJoint
+			allocator.Free(joint, sizeof(b2PrismaticJoint))
 			break
-		case b2Joint.e_revoluteJoint:
-			allocator->Free(joint, sizeof(b2RevoluteJoint))
+		case b2Joint.e_revoluteJoint
+			allocator.Free(joint, sizeof(b2RevoluteJoint))
 			break
-		case b2Joint.e_pulleyJoint:
-			allocator->Free(joint, sizeof(b2PulleyJoint))
+		case b2Joint.e_pulleyJoint
+			allocator.Free(joint, sizeof(b2PulleyJoint))
 			break
-		case b2Joint.e_gearJoint:
-			allocator->Free(joint, sizeof(b2GearJoint))
+		case b2Joint.e_gearJoint
+			allocator.Free(joint, sizeof(b2GearJoint))
 			break
-		default:
+		default
 			b2Assert(false)
 			break
-		*/
-b2Joint.e_unknownJoint = 0
-b2Joint.e_revoluteJoint = 1
-b2Joint.e_prismaticJoint = 2
-b2Joint.e_distanceJoint = 3
-b2Joint.e_pulleyJoint = 4
-b2Joint.e_mouseJoint = 5
-b2Joint.e_gearJoint = 6
-b2Joint.e_inactiveLimit = 0
-b2Joint.e_atLowerLimit = 1
-b2Joint.e_atUpperLimit = 2
-b2Joint.e_equalLimits = 3
+	end select
+	
+end
+

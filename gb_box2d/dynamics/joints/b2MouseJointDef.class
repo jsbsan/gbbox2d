@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,13 +16,16 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2MouseJointDef  as variant = Class.create()
 
-inherits , b2JointDef
-inherits 
-end
+inherits  b2JointDef
 
-public  sub 	initialize()
+public target as variant= new b2Vec2()
+public maxForce as variant= null
+public frequencyHz as variant= null
+public dampingRatio as variant= null
+public timeStep as variant= null
+
+public  sub _new()
 
 		' //  The constructor for b2JointDef
 		 me.type = b2Joint.e_unknownJoint
@@ -39,8 +42,6 @@ public  sub 	initialize()
 		 me.frequencyHz = 5.0
 		 me.dampingRatio = 0.7
 		 me.timeStep = 1.0 / 60.0
-Public t: new b2Vec2(), as new 2Vec2(),
-	maxForce: null
-	frequencyHz: null
-	dampingRatio: null
-	timeStep: null)
+end
+
+

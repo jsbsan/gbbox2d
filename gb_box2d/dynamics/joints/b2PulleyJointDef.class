@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -22,13 +22,21 @@
 ' //  Yes, the force transmitted is scaled by the ratio.
 ' //  The pulley also enforces a maximum length limit on both sides. This is
 ' //  useful to prevent one side of the pulley hitting the top.
-dim  b2PulleyJointDef  as variant = Class.create()
 
-inherits , b2JointDef
-inherits 
-end
+inherits  b2JointDef
 
-public  sub 	initialize()
+
+public groundPoint1 as variant= new b2Vec2()
+public groundPoint2 as variant= new b2Vec2()
+public anchorPoint1 as variant= new b2Vec2()
+public anchorPoint2 as variant= new b2Vec2()
+public maxLength1 as variant= null
+public maxLength2 as variant= null
+public ratio as variant= null
+
+
+
+public  sub _new()
 
 		' //  The constructor for b2JointDef
 		 me.type = b2Joint.e_unknownJoint
@@ -52,10 +60,4 @@ public  sub 	initialize()
 		 me.maxLength2 = 0.5 * b2PulleyJoint.b2_minPulleyLength
 		 me.ratio = 1.0
 		 me.collideConnected = true
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2(), as new 2Vec2(),
-	maxLength1: null
-	maxLength2: null
-	ratio: null)
+end

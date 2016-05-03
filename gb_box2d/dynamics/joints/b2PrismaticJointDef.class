@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not      
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -15,14 +15,21 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2PrismaticJointDef  as variant = Class.create()
 
-inherits , b2JointDef
-inherits 
-end
+inherits  b2JointDef
 
-public  sub 	initialize()
 
+public anchorPoint as variant=null
+public axis as variant=null
+public lowerTranslation as variant=null
+public upperTranslation as variant=null
+public motorForce as variant=null
+public motorSpeed as variant=null
+public enableLimit as variant=null
+public enableMotor as variant=null
+
+
+public  sub _new()
 		' //  The constructor for b2JointDef
 		 me.type = b2Joint.e_unknownJoint
 		 me.userData = null
@@ -39,11 +46,5 @@ public  sub 	initialize()
 		 me.motorSpeed = 0.0
 		 me.enableLimit = false
 		 me.enableMotor = false
-	anchorPoint: null
-	axis: null
-	lowerTranslation: null
-	upperTranslation: null
-	motorForce: null
-	motorSpeed: null
-	enableLimit: null
-	enableMotor: null)
+end
+  

@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ ' you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -15,14 +15,15 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2DistanceJointDef  as variant = Class.create()
 
-inherits , b2JointDef
-inherits 
-end
 
-public  sub 	initialize()
+inherits  b2JointDef
 
+public	anchorPoint1 as new b2Vec2()
+public anchorPoint2 as  new b2Vec2()
+
+
+public  sub _new()
 		' //  The constructor for b2JointDef
 		 me.type = b2Joint.e_unknownJoint
 		 me.userData = null
@@ -37,6 +38,5 @@ public  sub 	initialize()
 		 me.type = b2Joint.e_distanceJoint
 		' // me.anchorPoint1.Set(0.0, 0.0)
 		' // me.anchorPoint2.Set(0.0, 0.0)
-Public 1: new b2Vec2(), as new 2Vec2(),
-Public 2: new b2Vec2())
- as new 2Vec2())
+end 
+
