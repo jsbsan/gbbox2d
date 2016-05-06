@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not  
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -15,13 +15,20 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2ContactManager  as variant = Class.create()
 
-inherits , b2PairCallback
-inherits 
-end
 
-public  sub 	initialize()
+inherit  b2PairCallback
+ 
+
+public m_world as variant= null
+
+	'// This lets us provide broadphase proxy pair user data for
+	'// contacts that shouldn't exist.
+public	m_nullContact as  variant = new b2NullContact()
+public m_destroyImmediate as variant= null
+
+
+public  sub 	_new()
 
 		' //  The constructor for b2PairCallback
 		' // 
@@ -35,7 +42,7 @@ public  sub 	initialize()
 end
 
 public  sub 	PairAdded(proxyUserData1 as variant, proxyUserData2 as variant) as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcion
-dim 		 shape1  as variant = proxyUserData1
+	dim 	 shape1  as variant = proxyUserData1
 
 dim 		 shape2  as variant = proxyUserData2
 
@@ -43,41 +50,44 @@ dim 		 body1  as variant = shape1.m_body
 
 dim 		 body2  as variant = shape2.m_body
 
-		if (body1.IsStatic() && body2.IsStatic())
-			return me.m_nullContact
- '' TODO: posible funcion (revisar)
+dim 			 tempShape  as variant
+dim 			 tempBody  as variant 
+dim 		 contact  as variant 
 
-		if (shape1.m_body == shape2.m_body)
+		if (body1.IsStatic() and body2.IsStatic()) then 
 			return me.m_nullContact
- '' TODO: posible funcion (revisar)
+		endif
 
-		if (body2.IsConnected(body1))
+		if (shape1.m_body = shape2.m_body) then 
 			return me.m_nullContact
- '' TODO: posible funcion (revisar)
+		endif
 
-		if ( me.m_world.m_filter != null && me.m_world.m_filter.ShouldCollide(shape1, shape2) == false)
+		if (body2.IsConnected(body1)) then 
 			return me.m_nullContact
- '' TODO: posible funcion (revisar)
+		endif
+
+
+		if ( me.m_world.m_filter <> null and me.m_world.m_filter.ShouldCollide(shape1, shape2) = false) then 
+			return me.m_nullContact
+ 		endif
 
 		' //  Ensure that body2 is dynamic (body1 is static or dynamic).
 		if (body2.m_invMass == 0.0)
-dim 			 tempShape  as variant = shape1
-
+			 tempShape  = shape1
 			shape1 = shape2
 			shape2 = tempShape
 			' // b2Math.b2Swap(shape1, shape2)
-dim 			 tempBody  as variant = body1
-
-			body1 = body2
+			 tempBody  = body1
+ 			body1 = body2
 			body2 = tempBody
 			' // b2Math.b2Swap(body1, body2)
+		endif
+		
 		' //  Call the factory.
-dim 		 contact  as variant = b2Contact.Create(shape1, shape2, me.m_world.m_blockAllocator)
+		 contact  = b2Contact.Create(shape1, shape2, me.m_world.m_blockAllocator)
 
-		if (contact == null)
+		if (contact <> null) then 
 			return me.m_nullContact
- '' TODO: posible funcion (revisar)
-
 		else
 			' //  Insert into the world.
 			contact.m_prev = null
@@ -85,55 +95,72 @@ dim 		 contact  as variant = b2Contact.Create(shape1, shape2, me.m_world.m_block
 			if ( me.m_world.m_contactList != null)
 			
 				 me.m_world.m_contactList.m_prev = contact
-			
+			endif
 			 me.m_world.m_contactList = contact
-			 me.m_world.m_contactCount++
+			 me.m_world.m_contactCount +=1
+		endif
+		
 		return contact
- '' TODO: posible funcion (revisar)
+end
 
 	' //  This is a callback from the broadphase when two AABB proxies cease
 	' //  to overlap. We destroy the b2Contact.
-end
-
 public  sub 	PairRemoved(proxyUserData1 as variant, proxyUserData2 as variant, pairUserData as variant) as variant ''funcion
-		if (pairUserData == null)
-			return
- '' TODO: posible funcion (revisar)
 
 dim 		 c  as variant = pairUserData
 
-		if (c != me.m_nullContact)
+		if (pairUserData = null) then
+			return
+		endif
+
+
+		if (c <> me.m_nullContact) then
 			' // b2Settings.b2Assert( me.m_world.m_contactCount > 0)
-			if ( me.m_destroyImmediate == true)
+			if ( me.m_destroyImmediate = true) then 
 			
 				 me.DestroyContact(c)
 				c = null
 			
 			else
-			
+			''https://developer.mozilla.org/es/docs/Web/JavaScript/Guide/Expressions_and_Operators
 				c.m_flags |= b2Contact.e_destroyFlag
+			endif
 			
 end
 
 public  sub 	DestroyContact(c as variant)
+dim 			 body1  as variant 
+
+dim 			 body2  as variant 
+
+dim 			 node1  as variant 
+
+dim 			 node2  as variant 
+
 
 		' // b2Settings.b2Assert( me.m_world.m_contactCount > 0)
 		' //  Remove from the world.
-		if (c.m_prev)
+		if (c.m_prev) then 
 			c.m_prev.m_next = c.m_next
-		if (c.m_next)
+		endif
+		
+		if (c.m_next) then 
 			c.m_next.m_prev = c.m_prev
-		if (c == me.m_world.m_contactList)
+		endif
+		
+		if (c == me.m_world.m_contactList) then 
 			 me.m_world.m_contactList = c.m_next
+			endif
+			
 		' //  If there are contact points, then disconnect from the island graph.
-		if (c.GetManifoldCount() > 0)
-dim 			 body1  as variant = c.m_shape1.m_body
+		if (c.GetManifoldCount() > 0) then 
+	 		body1   = c.m_shape1.m_body
 
-dim 			 body2  as variant = c.m_shape2.m_body
+	 		body2   = c.m_shape2.m_body
 
-dim 			 node1  as variant = c.m_node1
+	 		node1   = c.m_node1
 
-dim 			 node2  as variant = c.m_node2
+	 		node2   = c.m_node2
 
 			' //  Wake up touching bodies.
 			body1.WakeUp()
@@ -142,78 +169,89 @@ dim 			 node2  as variant = c.m_node2
 			if (node1.prev)
 			
 				node1.prev.next = node1.next
-			
+			endif
 			if (node1.next)
 			
 				node1.next.prev = node1.prev
-			
+			endif
 			if (node1 == body1.m_contactList)
 			
 				body1.m_contactList = node1.next
+			endif
 			
 			node1.prev = null
 			node1.next = null
 			' //  Remove from body 2
 			if (node2.prev)
-			
-				node2.prev.next = node2.next
-			
+					node2.prev.next = node2.next
+			endif
 			if (node2.next)
-			
-				node2.next.prev = node2.prev
-			
+							node2.next.prev = node2.prev
+			endif
 			if (node2 == body2.m_contactList)
-			
-				body2.m_contactList = node2.next
+							body2.m_contactList = node2.next
+			endif
 			
 			node2.prev = null
 			node2.next = null
+		endif
+		
 		' //  Call the factory.
 		b2Contact.Destroy(c, me.m_world.m_blockAllocator)
-		-- me.m_world.m_contactCount
-	' //  Destroy any contacts marked for deferred destruction.
+		me.m_world.m_contactCount -=1
+
 end
 
+
+	' //  Destroy any contacts marked for deferred destruction.
 public  sub 	CleanContactList()
 
 dim 		 c  as variant = me.m_world.m_contactList
-
-		while (c != null)
-dim 			 c0  as variant = c
+dim 			 c0  as variant 
+		while (c <> null)
+			 c0  = c
 
 			c = c.m_next
-			if (c0.m_flags & b2Contact.e_destroyFlag)
+			if (c0.m_flags and b2Contact.e_destroyFlag) then
 			
 				 me.DestroyContact(c0)
 				c0 = null
-			
+			endif
+		wend
+		
+
+end
+
+
+
+
 	' //  This is the top level collision call for the time step. Here
 	' //  all the narrow phase collision is processed for the world
 	' //  contact list.
-end
-
 public  sub 	Collide()
 
-dim 		body1
- as variant
-dim 		body2
- as variant
-dim 		node1
- as variant
-dim 		node2
- as variant
-		for (var c = me.m_world.m_contactList; c != null; c = c.m_next)
-			if (c.m_shape1.m_body.IsSleeping() &&
-				c.m_shape2.m_body.IsSleeping())
-			
+dim 		body1  as variant
+dim 		body2  as variant
+dim 		node1  as variant
+dim 		node2  as variant
+ 
+ dim oldCount  as variant
+ dim newCount  as variant
+ dim c as integer=me.m_world.m_contactList
+ 
+ while () c != null)
+ 			c = c.m_next
+			if (c.m_shape1.m_body.IsSleeping() and 	c.m_shape2.m_body.IsSleeping())
 				continue
+			endif
 			
-dim 			 oldCount  as variant = c.GetManifoldCount()
+			
+			 oldCount   = c.GetManifoldCount()
 
 			c.Evaluate()
-dim 			 newCount  as variant = c.GetManifoldCount()
+			 newCount   = c.GetManifoldCount()
 
-			if (oldCount == 0 && newCount > 0)
+			if (oldCount == 0 and newCount > 0) then
 			
 				' // b2Settings.b2Assert(c.GetManifolds().pointCount > 0)
 				' //  Connect to island graph.
@@ -225,24 +263,26 @@ dim 			 newCount  as variant = c.GetManifoldCount()
 				node1.contact = c
 				node1.other = body2
 				node1.prev = null
-				node1.next = body1.m_contactList
-				if (node1.next != null)
+				node1.nextt = body1.m_contactList
+				if (node1.nextt <> null) then 
 				
-					node1.next.prev = c.m_node1
+					node1.nextt.prev = c.m_node1
+				endif
 				
 				body1.m_contactList = c.m_node1
 				' //  Connect to body 2
 				node2.contact = c
 				node2.other = body1
 				node2.prev = null
-				node2.next = body2.m_contactList
-				if (node2.next != null)
+				node2.nextt = body2.m_contactList
 				
-					node2.next.prev = node2
+				if (node2.nextt != null) then 
+							node2.nextt.prev = node2
+				endif
 				
 				body2.m_contactList = node2
 			
-			else if (oldCount > 0 && newCount == 0)
+			else if (oldCount > 0 and newCount = 0) then 
 			
 				' //  Disconnect from island graph.
 				body1 = c.m_shape1.m_body
@@ -250,38 +290,34 @@ dim 			 newCount  as variant = c.GetManifoldCount()
 				node1 = c.m_node1
 				node2 = c.m_node2
 				' //  Remove from body 1
-				if (node1.prev)
+				if (node1.prev) then 
+									node1.prev.nextt = node1.next
+				endif
 				
-					node1.prev.next = node1.next
+				if (node1.nextt) then 
+				 					node1.nextt.prev = node1.prev
+				endif
 				
-				if (node1.next)
-				
-					node1.next.prev = node1.prev
-				
-				if (node1 == body1.m_contactList)
-				
-					body1.m_contactList = node1.next
+				if (node1 = body1.m_contactList) then
+									body1.m_contactList = node1.nextt
+				endif
 				
 				node1.prev = null
-				node1.next = null
+				node1.nextt = null
 				' //  Remove from body 2
-				if (node2.prev)
+				if (node2.prev) then 
+									node2.prev.nextt = node2.nextt
+				endif
+				if (node2.nextt) then 
+									node2.nextt.prev = node2.prev
+				endif
 				
-					node2.prev.next = node2.next
-				
-				if (node2.next)
-				
-					node2.next.prev = node2.prev
-				
-				if (node2 == body2.m_contactList)
-				
-					body2.m_contactList = node2.next
+				if (node2 = body2.m_contactList) then 
+							body2.m_contactList = node2.nextt
+				endif
 				
 				node2.prev = null
 				node2.next = null
-			
-	m_world: null
-	' //  This lets us provide broadphase proxy pair user data for
-	' //  contacts that shouldn't exist.
-Public t: new b2NullContact(), as new 2NullContact(),
-	m_destroyImmediate: null)
+			endif
+	next
+end

@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+' you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -15,13 +15,13 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2TimeStep  as variant = Class.create()
 
-b2TimeStep.prototype = 
-	dt: null
-	inv_dt: null
-	iterations: 0
+public	dt as variant= null
+public	inv_dt as variant= null
+public	iterations as variant= 0
+
+
+public  sub 	_new()
 end
 
-public  sub 	initialize()
  

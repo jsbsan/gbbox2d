@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ 'you must not     
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,24 +16,22 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2CollisionFilter  as variant = Class.create()
 
-b2CollisionFilter.prototype = 
+
+
 	' //  Return true if contact calculations should be performed between these two shapes.
-end
-
 public  sub 	ShouldCollide(shape1 as variant, shape2 as variant) as variant ''funcio as variant ''funcion
-		if (shape1.m_groupIndex == shape2.m_groupIndex && shape1.m_groupIndex != 0)
+	dim 		 collide  as variant 
+	
+		if (shape1.m_groupIndex = shape2.m_groupIndex and  shape1.m_groupIndex <> 0)
 			return shape1.m_groupIndex > 0
- '' TODO: posible funcion (revisar)
+		endif
+		
 
-dim 		 collide  as variant = (shape1.m_maskBits & shape2.m_categoryBits) != 0 && (shape1.m_categoryBits & shape2.m_maskBits) != 0
+collide   = (shape1.m_maskBits and shape2.m_categoryBits) <> 0 and  (shape1.m_categoryBits and shape2.m_maskBits) <> 0
 
 		return collide
- '' TODO: posible funcion (revisar)
 
 end
 
-public  sub 	initialize()
- 
-b2CollisionFilter.b2_defaultFilter = new b2CollisionFilter
+'public b2_defaultFilter = new b2CollisionFilter

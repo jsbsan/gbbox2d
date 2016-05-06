@@ -7,7 +7,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ 'you must not     
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -18,15 +18,37 @@
 ' /* 
 
 ' */
-dim  b2Island  as variant = Class.create()
 
-b2Island.prototype = 
-end
 
-public  sub 	initialize(bodyCapacity as variant, contactCapacity as variant, jointCapacity as variant, allocator as variant)
+public m_allocator as variant= null
+
+public m_bodies as variant= null
+public m_contacts as variant= null
+public m_joints as variant= null
+
+public m_bodyCount as variant= 0
+public m_jointCount as variant= 0
+public m_contactCount as variant= 0
+
+public m_bodyCapacity as variant= 0
+public m_contactCapacity as variant= 0
+public m_jointCapacity as variant= 0
+
+public m_positionError as variant= null
+
+public m_positionIterationCount as variant = 0
+
+
+
+
+
+
+
+public  sub 	_new(bodyCapacity as variant, contactCapacity as variant, jointCapacity as variant, allocator as variant)
 
 dim 		 i  as variant = 0
 
+		 
 		 me.m_bodyCapacity = bodyCapacity
 		 me.m_contactCapacity = contactCapacity
 		 me.m_jointCapacity	 = jointCapacity
@@ -34,23 +56,27 @@ dim 		 i  as variant = 0
 		 me.m_contactCount = 0
 		 me.m_jointCount = 0
 		' // me.m_bodies = (b2Body**)allocator->Allocate(bodyCapacity * sizeof(b2Body*))
-		 me.m_bodies = new Array(bodyCapacity)
-		for (i = 0; i < bodyCapacity; i++)
+ me.m_bodies =bodyCapacity
+		 
+		 
+		for i = 0 to bodyCapacity-1
 			 me.m_bodies[i] = null
+		next
 		' // me.m_contacts = (b2Contact**)allocator->Allocate(contactCapacity	 * sizeof(b2Contact*))
-		 me.m_contacts = new Array(contactCapacity)
-		for (i = 0; i < contactCapacity; i++)
+		 me.m_contacts = contactCapacity
+		for (i = 0 to contactCapacity-1
 			 me.m_contacts[i] = null
+		next 
 		' // me.m_joints = (b2Joint**)allocator->Allocate(jointCapacity * sizeof(b2Joint*))
-		 me.m_joints = new Array(jointCapacity)
-		for (i = 0; i < jointCapacity; i++)
+		 me.m_joints = jointCapacity
+		for (i = 0 to jointCapacity-1
 			 me.m_joints[i] = null
+		next
 		 me.m_allocator = allocator
 	' // ~b2Island()
 end
 
 public  sub 	Clear()
-
 		 me.m_bodyCount = 0
 		 me.m_contactCount = 0
 		 me.m_jointCount = 0
@@ -59,13 +85,23 @@ end
 public  sub 	Solve(step as variant, gravity as variant)
 
 dim 		 i  as variant = 0
+dim 		 j  as variant = 0
+dim 		b  as variant
+dim 		 contactSolver  as variant
 
-dim 		b
- as variant
-		for (i = 0; i < me.m_bodyCount; ++i)
+dim 				 contactsOkay  as variant
+dim 				 jointsOkay  as variant 
+dim 					 jointOkay  as variant 
+dim 				 contactsOkay  as variant
+dim 				 jointsOkay  as variant
+dim 					 jointOkay  as variant
+
+		for i = 0 to  me.m_bodyCount-1
 			b = me.m_bodies[i]
-			if (b.m_invMass == 0.0)
+			if (b.m_invMass == 0.0) then 
 				continue
+			endif
+			
 			b.m_linearVelocity.Add( b2Math.MulFV (step.dt, b2Math.AddVV(gravity, b2Math.MulFV( b.m_invMass, b.m_force ) ) ) )
 			b.m_angularVelocity += step.dt * b.m_invI * b.m_torque
 			' // b.m_linearVelocity *= b.m_linearDamping
@@ -74,89 +110,105 @@ dim 		b
 			' //  Store positions for conservative advancement.
 			b.m_position0.SetV(b.m_position)
 			b.m_rotation0 = b.m_rotation
-dim 		 contactSolver  as variant = new b2ContactSolver( me.m_contacts, me.m_contactCount, me.m_allocator)
+		next
+		
+		
+		 contactSolver  = new b2ContactSolver( me.m_contacts, me.m_contactCount, me.m_allocator)
 
 		' //  Pre-solve
 		contactSolver.PreSolve()
-		for (i = 0; i < me.m_jointCount; ++i)
+		
+		for (i = 0 to me.m_jointCount-1
 			 me.m_joints[i].PrepareVelocitySolver()
+		next
+		
 		' //  me.Solve velocity constraints.
-		for (i = 0; i < step.iterations; ++i)
+		for (i = 0 to step.iterations-1
 			contactSolver.SolveVelocityConstraints()
-			for (var j = 0; j < me.m_jointCount; ++j)
+			for  j = 0 to  me.m_jointCount-1
 			
 				 me.m_joints[j].SolveVelocityConstraints(step)
-			
+			next
+		next
+		
 		' //  Integrate positions.
-		for (i = 0; i < me.m_bodyCount; ++i)
+		for (i = 0 to me.m_bodyCount-1
 			b = me.m_bodies[i]
-			if (b.m_invMass == 0.0)
+			if (b.m_invMass = 0.0) then 
 				continue
+			endif
+			
 			' // b.m_position.Add( b2Math.MulFV (step.dt, b.m_linearVelocity) )
 			b.m_position.x += step.dt * b.m_linearVelocity.x
 			b.m_position.y += step.dt * b.m_linearVelocity.y
 			b.m_rotation += step.dt * b.m_angularVelocity
 			b.m_R.Set(b.m_rotation)
-		for (i = 0; i < me.m_jointCount; ++i)
+		next
+		
+		for (i = 0 to me.m_jointCount-1
 			 me.m_joints[i].PreparePositionSolver()
+		next
+		
 		' //  me.Solve position constraints.
 		if (b2World.s_enablePositionCorrection)
-			for (b2Island.m_positionIterationCount = 0; b2Island.m_positionIterationCount < step.iterations; ++b2Island.m_positionIterationCount)
+			for b2Island.m_positionIterationCount = 0 to  step.iterations-1
 			
-dim 				 contactsOkay  as variant = contactSolver.SolvePositionConstraints(b2Settings.b2_contactBaumgarte)
+			 contactsOkay  = contactSolver.SolvePositionConstraints(b2Settings.b2_contactBaumgarte)
 
-dim 				 jointsOkay  as variant = true
+			 jointsOkay  = true
 
-				for (i = 0; i < me.m_jointCount; ++i)
+				for i = 0 to me.m_jointCount-1
+  				 jointOkay  = me.m_joints[i].SolvePositionConstraints()
+					jointsOkay = jointsOkay and jointOkay
+				next
 				
-dim 					 jointOkay  as variant = me.m_joints[i].SolvePositionConstraints()
-
-					jointsOkay = jointsOkay && jointOkay
-				
-				if (contactsOkay && jointsOkay)
-				
-					break
-				
+				if (contactsOkay and jointsOkay)
+								breakç
+					endif
+			next
+		endif
+		
 			
 		' //  Post-solve.
 		contactSolver.PostSolve()
 		' //  Synchronize shapes and reset forces.
-		for (i = 0; i < me.m_bodyCount; ++i)
+		for (i = 0 to me.m_bodyCount-1
 			b = me.m_bodies[i]
-			if (b.m_invMass == 0.0)
+			if (b.m_invMass = 0.0) then 
 				continue
+			endif
+			
 			b.m_R.Set(b.m_rotation)
 			b.SynchronizeShapes()
 			b.m_force.Set(0.0, 0.0)
 			b.m_torque = 0.0
+		next
+		
 end
 
 public  sub 	UpdateSleep(dt as variant)
 
-dim 		 i  as variant = 0
+dim 	 i  as variant = 0
 
-dim 		b
- as variant
+dim 		b  as variant
 dim 		 minSleepTime  as variant = Number.MAX_VALUE
 
 dim 		 linTolSqr  as variant = b2Settings.b2_linearSleepTolerance * b2Settings.b2_linearSleepTolerance
 
 dim 		 angTolSqr  as variant = b2Settings.b2_angularSleepTolerance * b2Settings.b2_angularSleepTolerance
 
-		for (i = 0; i < me.m_bodyCount; ++i)
+		for i = 0 to me.m_bodyCount-1
 			b = me.m_bodies[i]
-			if (b.m_invMass == 0.0)
+			if (b.m_invMass = 0.0) then 
+						continue
+			endif
 			
-				continue
-			
-			if ((b.m_flags & b2Body.e_allowSleepFlag) == 0)
-			
+			if ((b.m_flags and b2Body.e_allowSleepFlag) = 0) then 
 				b.m_sleepTime = 0.0
 				minSleepTime = 0.0
+			endif
 			
-			if ((b.m_flags & b2Body.e_allowSleepFlag) == 0 ||
-				b.m_angularVelocity * b.m_angularVelocity > angTolSqr ||
-				b2Math.b2Dot(b.m_linearVelocity, b.m_linearVelocity) > linTolSqr)
+			if ((b.m_flags and b2Body.e_allowSleepFlag) = 0 or  b.m_angularVelocity * b.m_angularVelocity > angTolSqr or 				b2Math.b2Dot(b.m_linearVelocity, b.m_linearVelocity) > linTolSqr) then 
 			
 				b.m_sleepTime = 0.0
 				minSleepTime = 0.0
@@ -165,40 +217,35 @@ dim 		 angTolSqr  as variant = b2Settings.b2_angularSleepTolerance * b2Settings.
 			
 				b.m_sleepTime += dt
 				minSleepTime = b2Math.b2Min(minSleepTime, b.m_sleepTime)
+			endif
 			
-		if (minSleepTime >= b2Settings.b2_timeToSleep)
-			for (i = 0; i < me.m_bodyCount; ++i)
 			
+		if (minSleepTime >= b2Settings.b2_timeToSleep) them
+			for i = 0 to  me.m_bodyCount-1
 				b = me.m_bodies[i]
+				'comprobar
 				b.m_flags |= b2Body.e_sleepFlag
+			next
+		endif
+		
 			
 end
 
 public  sub 	AddBody(body as variant)
 
 		' // b2Settings.b2Assert( me.m_bodyCount < me.m_bodyCapacity)
-		 me.m_bodies[ me.m_bodyCount++] = body
+		 me.m_bodies[ me.m_bodyCount+1] = body
 end
 
 public  sub 	AddContact(contact as variant)
 
 		' // b2Settings.b2Assert( me.m_contactCount < me.m_contactCapacity)
-		 me.m_contacts[ me.m_contactCount++] = contact
+		 me.m_contacts[ me.m_contactCount+1] = contact
 end
 
 public  sub 	AddJoint(joint as variant)
 
 		' // b2Settings.b2Assert( me.m_jointCount < me.m_jointCapacity)
 		 me.m_joints[ me.m_jointCount++] = joint
-	m_allocator: null
-	m_bodies: null
-	m_contacts: null
-	m_joints: null
-	m_bodyCount: 0
-	m_jointCount: 0
-	m_contactCount: 0
-	m_bodyCapacity: 0
-	m_contactCapacity: 0
-	m_jointCapacity: 0
-	m_positionError: null
-b2Island.m_positionIterationCount = 0
+end
+

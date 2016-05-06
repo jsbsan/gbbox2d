@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ 'you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,19 +16,30 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2BodyDef  as variant = Class.create()
 
-b2BodyDef.prototype = 
-end
+public userData as variant= null
+public shapes as new variant[]
+public position as variant= null
+public rotation as variant= null
+public linearVelocity as variant= null
+public angularVelocity as variant= null
+public linearDamping as variant= null
+public angularDamping as variant= null
+public allowSleep as variant= null
+public isSleeping as variant= null
+public preventRotation as variant= null
 
-public  sub 	initialize()
+public  sub 	new ()
+dim i as integer=0
 
 		' //  initialize instance variables for references
-		 me.shapes = new Array()
+		 me.shapes = new variant[]
 		' // 
 		 me.userData = null
-		for (var i = 0; i < b2Settings.b2_maxShapesPerBody; i++)
-			 me.shapes[i] = null
+		 
+		 for i=0 to  b2Settings.b2_maxShapesPerBody-1
+		 	me.shapes[i] = null
+		 next 
 		 me.position = new b2Vec2(0.0, 0.0)
 		 me.rotation = 0.0
 		 me.linearVelocity = new b2Vec2(0.0, 0.0)
@@ -38,24 +49,16 @@ public  sub 	initialize()
 		 me.allowSleep = true
 		 me.isSleeping = false
 		 me.preventRotation = false
-	userData: null
-Public s: new Array(), as new rray(),
-	position: null
-	rotation: null
-	linearVelocity: null
-	angularVelocity: null
-	linearDamping: null
-	angularDamping: null
-	allowSleep: null
-	isSleeping: null
-	preventRotation: null
 end
 
-public  sub 	AddShape(shape as variant)
 
-		for (var i = 0; i < b2Settings.b2_maxShapesPerBody; ++i)
-			if ( me.shapes[i] == null)
-			
-				 me.shapes[i] = shape
+public  sub 	AddShape(shape as variant)
+dim i as integer=0
+		for i = 0 to  b2Settings.b2_maxShapesPerBody-1
+			if ( me.shapes[i] = null) then
+			     me.shapes[i] = shape
 				break
+			endif
+		next
+end
 			

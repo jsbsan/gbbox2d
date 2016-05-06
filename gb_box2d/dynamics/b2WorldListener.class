@@ -8,7 +8,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
- you must not
+ 'you must not
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -16,9 +16,7 @@
 ' * misrepresented the original software.
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
-dim  b2WorldListener  as variant = Class.create()
 
-b2WorldListener.prototype = 
 	' //  If a body is destroyed, then any joints attached to it are also destroyed.
 	' //  This prevents memory leaks, but you may unexpectedly be left with an
 	' //  orphaned joint pointer.
@@ -27,7 +25,10 @@ b2WorldListener.prototype =
 	' //  Implement this abstract class and provide it to b2World via
 	' //  b2World::SetListener().
 	' //  DO NOT modify the Box2D world inside this callback.
-end
+
+
+public b2_freezeBody as variant = 0
+public b2_destroyBody as variant = 1
 
 public  sub 	NotifyJointDestroyed(joint as variant)
 
@@ -39,11 +40,9 @@ end
 public  sub 	NotifyBoundaryViolated(body as variant) as variant ''funcion
 		' // NOT_USED(body)
 		return b2WorldListener.b2_freezeBody
- '' TODO: posible funcion (revisar)
-
 end
 
-public  sub 	initialize()
+public  sub 	_new()
+end
+
  
-b2WorldListener.b2_freezeBody = 0
-b2WorldListener.b2_destroyBody = 1
