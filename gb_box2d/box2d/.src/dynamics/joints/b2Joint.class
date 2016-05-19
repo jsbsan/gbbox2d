@@ -1,0 +1,218 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not   
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Public m_type As Variant = 0
+Public m_prev As Variant = Null
+Public m_next As Variant = Null
+Public m_node1 As Variant = New B2JointNode()
+Public m_node2 As Variant = New B2JointNode()
+Public m_body1 As Variant = Null
+Public m_body2 As Variant = Null
+Public m_islandFlag As Variant = Null
+Public m_collideConnected As Variant = Null
+Public m_userData As Variant = Null
+
+Public e_unknownJoint As Integer = 0
+Public e_revoluteJoint As Integer = 1
+Public e_prismaticJoint As Integer = 2
+Public e_distanceJoint As Integer = 3
+Public e_pulleyJoint As Integer = 4
+Public e_mouseJoint As Integer = 5
+Public e_gearJoint As Integer = 6
+Public e_inactiveLimit As Integer = 0
+Public e_atLowerLimit As Integer = 1
+Public e_atUpperLimit As Integer = 2
+Public e_equalLimits As Integer = 3
+
+Public Sub GetType() As Variant ''funcion
+  
+  Return Me.m_type
+  
+End
+
+Public Sub GetAnchor1() As Variant
+  
+  Return Null 
+  
+End
+
+Public Sub GetAnchor2() As Variant
+  
+  Return Null 
+  
+End
+
+Public Sub GetReactionForce(invTimeStep As Variant) As Variant
+  
+  Return Null 
+  
+End
+
+Public Sub GetReactionTorque(invTimeStep As Variant) As Variant
+  
+  Return 0.0
+  
+End
+
+Public Sub GetBody1() As Variant 
+  
+  Return Me.m_body1
+  
+End
+
+Public Sub GetBody2() As Variant ''funcion
+  
+  Return Me.m_body2
+  
+End
+
+Public Sub GetNext() As Variant ''funcion
+  
+  Return Me.m_next
+  
+End
+
+Public Sub GetUserData() As Variant ''funcion
+  
+  Return Me.m_userData
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(def As Variant)
+  
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2JointNode()
+  Me.m_node2 = New B2JointNode()
+  ' // 
+  Me.m_type = def.type
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_body1 = def.body1
+  Me.m_body2 = def.body2
+  Me.m_collideConnected = def.collideConnected
+  Me.m_islandFlag = False
+  Me.m_userData = def.userData
+  ' // virtual ~b2Joint() 
+  
+End
+
+Public Sub PrepareVelocitySolver()
+  
+End
+
+Public Sub SolveVelocityConstraints( Step As Variant) As Variant ''funcion
+  ' //  This returns true if the position errors are within tolerance. '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub PreparePositionSolver()
+  
+End
+
+Public Sub SolvePositionConstraints() As Variant
+  
+  Return False '' TODO: posible funcion (revisar)
+  
+End
+
+' //  ENUMS
+' //  enum b2JointType
+' //  enum b2LimitState
+
+Public Sub Create(def As Variant, allocator As Variant) As Variant ''funcion
+  
+  Dim joint As Variant = Null
+  
+  Select Case def.type
+    Case b2Joint.e_distanceJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2DistanceJoint))
+      joint = New B2DistanceJoint(def)
+      
+      Break
+    Case b2Joint.e_mouseJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2MouseJoint))
+      joint = New B2MouseJoint(def)
+      
+      Break
+    Case b2Joint.e_prismaticJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2PrismaticJoint))
+      joint = New B2PrismaticJoint(def)
+      
+      Break
+    Case b2Joint.e_revoluteJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2RevoluteJoint))
+      joint = New B2RevoluteJoint(def)
+      
+      Break
+    Case b2Joint.e_pulleyJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2PulleyJoint))
+      joint = New B2PulleyJoint(def)
+      
+      Break
+    Case b2Joint.e_gearJoint:
+      
+      ' // void* mem = allocator->Allocate(sizeof(b2GearJoint))
+      joint = New B2GearJoint(def)
+      
+      Break
+    default:
+      ' // b2Settings.b2Assert(false)
+      Break
+  End Select
+  
+  Return joint
+  
+End
+
+Public Sub Destroy(joint As Variant, allocator As Variant)
+  
+  ' /* joint->~b2Joint()
+  selec Case joint.m_type
+Case b2Joint.e_distanceJoint
+  allocator.Free(joint, SizeOf(b2DistanceJoint))
+  Break
+Case b2Joint.e_mouseJoint
+  allocator.Free(joint, SizeOf(b2MouseJoint))
+  Break
+Case b2Joint.e_prismaticJoint
+  allocator.Free(joint, SizeOf(b2PrismaticJoint))
+  Break
+Case b2Joint.e_revoluteJoint
+  allocator.Free(joint, SizeOf(b2RevoluteJoint))
+  Break
+Case b2Joint.e_pulleyJoint
+  allocator.Free(joint, SizeOf(b2PulleyJoint))
+  Break
+Case b2Joint.e_gearJoint
+  allocator.Free(joint, SizeOf(b2GearJoint))
+  Break
+Default
+  b2Assert(False)
+  Break
+End Select
+
+End

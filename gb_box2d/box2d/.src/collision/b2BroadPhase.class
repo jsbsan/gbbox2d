@@ -1,0 +1,983 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' /* 
+'This broad phase uses the Sweep and Prune algorithm in:
+'Collision Detection in Interactive 3D Environments by Gino van den Bergen
+'Also, some ideas, such integral values for fast compares comes from
+'Bullet (http:/www.bulletphysics.com).
+' */
+' //  Notes:
+' //  - we use bound arrays instead of linked lists for cache coherence.
+' //  - we use quantized integral values for fast compares.
+' //  - we use short indices rather than pointers to save memory.
+' //  - we use a stabbing count for fast overlap queries (less than order N).
+' //  - we also use a time stamp on each proxy to speed up the registration of
+' //    overlap query results.
+' //  - where possible, we compare bound indices instead of values to reduce
+' //    cache misses (TODO_ERIN).
+' //  - no broadphase is perfect and neither is this one: it is not great for huge
+' //    worlds (use a multi-SAP instead), it is not great for large objects.
+
+' // public:
+Public m_pairManager As New 2 PairManager()
+
+Public m_proxyPool As New Variant[b2Settings.b2_maxPairs]
+Public m_freeProxy As Integer = 0
+
+Public m_bounds As New Variant[2 * b2Settings.b2_maxProxies]
+
+Public m_queryResults s New Variant[b2Settings.b2_maxProxies]
+Public m_queryResultCount As Integer = 0
+Public m_worldAABB As Variant = Null
+
+Public m_quantizationFactor As New B2Vec2()
+Public m_proxyCount As Integer = 0
+Public m_timeStamp As Integer = 0
+Public s_validate As Boolean = False
+Public b2_invalid As Variant = b2Settings.USHRT_MAX
+Public b2_nullEdge As Variant = b2Settings.USHRT_MAX
+
+Public Sub _new(worldAABB As Variant, callback As Variant)
+  
+  Dim i As Integer = 0
+  Dim j As Integer = 0
+  
+  ' // var d = b2Math.SubtractVV(worldAABB.maxVertex, worldAABB.minVertex)
+  Dim dX As Variant = worldAABB.maxVertex.x
+  
+  Dim dY As Variant = worldAABB.maxVertex.y
+  Dim tProxy As B2Proxy()
+  
+  ' //  initialize instance variables for references
+  Me.m_pairManager = New B2PairManager()
+  Me.m_proxyPool = New B2Settings.b2_maxPairs[]
+  Me.m_bounds = New B2Settings.b2_maxProxies[] 'con doble 
+  Me.m_queryResults = New B2Settings.b2_maxProxies[]
+  Me.m_quantizationFactor = New B2Vec2()
+  ' // 
+  ' // b2Settings.b2Assert(worldAABB.IsValid())
+  
+  Me.m_pairManager.Initialize(Me, callback)
+  Me.m_worldAABB = worldAABB
+  Me.m_proxyCount = 0
+  ' //  query results
+  For i = 0 To b2Settings.b2_maxProxies
+    Me.m_queryResults[i] = 0
+  Next
+  ' //  bounds array
+  Me.m_bounds = New Variant[2][2 * b2Settings.b2_maxProxies]
+  
+  For i = 0 To 2
+    '	 me.m_bounds.add(new variant[][]))) 'new Array(2*b2Settings.b2_maxProxies)
+    For j = 0 To 2 * b2Settings.b2_maxProxies
+      Me.m_bounds[i][j] = New B2Bound()
+    Next
+  Next
+  
+  dX -= worldAABB.minVertex.x
+  dY -= worldAABB.minVertex.y
+  Me.m_quantizationFactor.x = b2Settings.USHRT_MAX / dX
+  Me.m_quantizationFactor.y = b2Settings.USHRT_MAX / dY
+  
+  For i = 0 To b2Settings.b2_maxProxies - 1
+    tProxy = New B2Proxy()
+    Me.m_proxyPool[i] = tProxy
+    tProxy.SetNext(i + 1)
+    tProxy.timeStamp = 0
+    tProxy.overlapCount = b2BroadPhase.b2_invalid
+    tProxy.userData = Null
+  Next
+  
+  tProxy = New B2Proxy()
+  Me.m_proxyPool[b2Settings.b2_maxProxies - 1] = tProxy
+  tProxy.SetNext(b2Pair.b2_nullProxy)
+  tProxy.timeStamp = 0
+  tProxy.overlapCount = b2BroadPhase.b2_invalid
+  tProxy.userData = Null
+  Me.m_freeProxy = 0
+  Me.m_timeStamp = 1
+  Me.m_queryResultCount = 0
+  ' // ~b2BroadPhase()
+  ' //  Use this to see if your proxy is in range. If it is not in range
+  ' //  it should be destroyed. Otherwise you may get O(m^2) pairs, where m
+  ' //  is the number of proxies that are out of range.
+  
+End
+
+Public Sub InRange(aabb As Variant) As Boolean ''funcion
+  ' // var d = b2Math.b2MaxV(b2Math.SubtractVV(aabb.minVertex, me.m_worldAABB.maxVertex), b2Math.SubtractVV( me.m_worldAABB.minVertex, aabb.maxVertex))
+  
+  Dim dX As Variant
+  Dim dY As Variant
+  Dim d2X As Variant
+  Dim d2Y As Variant
+  
+  dX = aabb.minVertex.x
+  dY = aabb.minVertex.y
+  dX -= Me.m_worldAABB.maxVertex.x
+  dY -= Me.m_worldAABB.maxVertex.y
+  d2X = Me.m_worldAABB.minVertex.x
+  d2Y = Me.m_worldAABB.minVertex.y
+  d2X -= aabb.maxVertex.x
+  d2Y -= aabb.maxVertex.y
+  dX = b2Math.b2Max(dX, d2X)
+  dY = b2Math.b2Max(dY, d2Y)
+  Return b2Math.b2Max(dX, dY) < 0.0
+  '' TODO: posible funcion (revisar)
+  
+  ' //  Get a single proxy. Returns NULL if the id is invalid.
+End
+
+Public Sub GetProxy(proxyId As Variant) As Variant ''funcio as variant ''funcion
+  
+  If (proxyId = b2Pair.b2_nullProxy And Me.m_proxyPool[proxyId].IsValid() = False)
+    Return Null
+  Endif
+  Return Me.m_proxyPool[proxyId]
+  
+End
+
+Public Sub CreateProxy(aabb As Variant, userData As Variant) As Variant ''funcion
+  
+  Dim index As Variant = 0
+  
+  Dim proxy As Variant
+  ' // b2Settings.b2Assert( me.m_proxyCount < b2_maxProxies)
+  ' // b2Settings.b2Assert( me.m_freeProxy != b2Pair.b2_nullProxy)
+  Dim proxyId As Variant = Me.m_freeProxy
+  
+  Dim boundCount As Integer = 2 * Me.m_proxyCount
+  
+  Dim lowerValues As New Variant[] 
+  
+  Dim upperValues As New Variant[] 
+  
+  Dim axis As Integer = 0 
+  
+  Dim bounds As Variant
+  
+  Dim lowerIndex As Variant
+  
+  Dim upperIndex As Variant
+  
+  Dim lowerIndexOut As Variant
+  
+  Dim upperIndexOut As Variant
+  
+  Dim j As Integer
+  
+  Dim tIndex As Variant 
+  
+  Dim tArr As New Variant[]
+  
+  Dim proxy2 As Variant
+  
+  proxy = Me.m_proxyPool[proxyId]
+  Me.m_freeProxy = proxy.GetNext()
+  proxy.overlapCount = 0
+  proxy.userData = userData
+  
+  Me.ComputeBounds(lowerValues, upperValues, aabb)
+  
+  For axis = 0 To 2
+    bounds = Me.m_bounds[axis]
+    
+    lowerIndex = 0
+    
+    upperIndex = 0
+    
+    lowerIndexOut = [lowerIndex]
+    
+    upperIndexOut = [upperIndex]
+    
+    Me.Query(lowerIndexOut, upperIndexOut, lowerValues[axis], upperValues[axis], bounds, boundCount, axis)
+    lowerIndex = lowerIndexOut[0]
+    upperIndex = upperIndexOut[0]
+    ' //  Replace memmove calls
+    ' // memmove(bounds + upperIndex + 2, bounds + upperIndex, (edgeCount - upperIndex) * sizeof(b2Bound))
+    tArr = New Variant[]
+    
+    j = 0
+    
+    tEnd = boundCount - upperIndex
+    
+    ' //  make temp array
+    For j = 0 To tEnd - 1
+      tArr[j] = New B2Bound()
+      tBound1 = tArr[j]
+      tBound2 = bounds[upperIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' //  move temp array back in to bounds
+    tEnd = tArr.length
+    
+    tIndex = upperIndex + 2
+    
+    For j = 0 To tEnd - 1
+      ' // bounds[tIndex+j] = tArr[j]
+      tBound2 = tArr[j]
+      tBound1 = bounds[tIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' // memmove(bounds + lowerIndex + 1, bounds + lowerIndex, (upperIndex - lowerIndex) * sizeof(b2Bound))
+    ' //  make temp array
+    tArr = New Variant[]
+    tEnd = upperIndex - lowerIndex
+    
+    For j = 0 To tEnd - 1
+      tArr[j] = New B2Bound()
+      tBound1 = tArr[j]
+      tBound2 = bounds[lowerIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' //  move temp array back in to bounds
+    tEnd = tArr.count
+    tIndex = lowerIndex + 1
+    
+    For j = 0 To tEnd - 1
+      ' // bounds[tIndex+j] = tArr[j]
+      tBound2 = tArr[j]
+      tBound1 = bounds[tIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' //  The upper index has increased because of the lower bound insertion.
+    upperIndex += 1
+    ' //  Copy in the new bounds.
+    bounds[lowerIndex].value = lowerValues[axis]
+    bounds[lowerIndex].proxyId = proxyId
+    bounds[upperIndex].value = upperValues[axis]
+    bounds[upperIndex].proxyId = proxyId
+    bounds[lowerIndex].stabbingCount = If(lowerIndex = 0, 0, bounds[lowerIndex - 1].stabbingCount)
+    bounds[upperIndex].stabbingCount = bounds[upperIndex - 1].stabbingCount
+    ' //  Adjust the stabbing count between the new bounds.
+    For index = lowerIndex To upperIndex
+      bounds[index].stabbingCount += 1
+    Next
+    ' //  Adjust the all the affected bound indices.
+    
+    For index = lowerIndex To boundCount + 2
+      
+      proxy2 = Me.m_proxyPool[bounds[index].proxyId]
+      
+      If (bounds[index].IsLower()) Then 
+        
+        proxy2.lowerBounds[axis] = index
+        
+      Else
+        
+        proxy2.upperBounds[axis] = index
+      Endif
+    Next
+  Next
+  
+  Me.m_proxyCount += 1
+  
+  ' // b2Settings.b2Assert( me.m_queryResultCount < b2Settings.b2_maxProxies)
+  For i = 0 To Me.m_queryResultCount - 1
+    ' // b2Settings.b2Assert( me.m_queryResults[i] < b2_maxProxies)
+    ' // b2Settings.b2Assert( me.m_proxyPool[ me.m_queryResults[i]].IsValid())
+    Me.m_pairManager.AddBufferedPair(proxyId, Me.m_queryResults[i])
+  Next
+  Me.m_pairManager.Commit()
+  ' //  Prepare for next query.
+  Me.m_queryResultCount = 0
+  Me.IncrementTimeStamp()
+  Return proxyId
+  
+End
+
+Public Sub DestroyProxy(proxyId As Variant)
+  
+  ' // b2Settings.b2Assert(0 < me.m_proxyCount && me.m_proxyCount <= b2_maxProxies)
+  Dim proxy As Variant = Me.m_proxyPool[proxyId]
+  
+  ' // b2Settings.b2Assert(proxy.IsValid())
+  Dim boundCount As Variant = 2 * Me.m_proxyCount
+  
+  Dim axis As Inteter
+  
+  Dim bounds As Variant 
+  
+  Dim lowerIndex As Variant 
+  
+  Dim upperIndex As Variant 
+  
+  Dim lowerValue As Variant 
+  
+  Dim upperValue As Variant 
+  
+  ' //  replace memmove calls
+  ' // memmove(bounds + lowerIndex, bounds + lowerIndex + 1, (upperIndex - lowerIndex - 1) * sizeof(b2Bound))
+  Dim tArr As Variant 
+  
+  Dim j As Integer = 0
+  
+  Dim tEnd As Integer
+  
+  Dim tBound1 As Variant
+  Dim tBound2 As Variant
+  
+  Dim tIndex As Variant
+  
+  Dim index As Integer
+  Dim proxy2 As Variant 
+  
+  Dim index2 As Variant
+  Dim j As Integer
+  
+  For axis = 0 To 2
+    bounds = Me.m_bounds[axis]
+    
+    lowerIndex = proxy.lowerBounds[axis]
+    
+    upperIndex = proxy.upperBounds[axis]
+    
+    lowerValue = bounds[lowerIndex].value
+    
+    upperValue = bounds[upperIndex].value
+    
+    ' //  replace memmove calls
+    ' // memmove(bounds + lowerIndex, bounds + lowerIndex + 1, (upperIndex - lowerIndex - 1) * sizeof(b2Bound))
+    tArr = New Array()
+    
+    j = 0
+    
+    tEnd = upperIndex - lowerIndex - 1
+    
+    tBound1 = New Variant
+    tBound2 = New Variant
+    ' //  make temp array
+    For j = 0 To tEnd - 1
+      tArr[j] = New B2Bound()
+      tBound1 = tArr[j]
+      tBound2 = bounds[lowerIndex + 1 + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' //  move temp array back in to bounds
+    tEnd = tArr.count
+    
+    tIndex = lowerIndex
+    
+    For j = 0 To tEnd - 1
+      ' // bounds[tIndex+j] = tArr[j]
+      tBound2 = tArr[j]
+      tBound1 = bounds[tIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' // memmove(bounds + upperIndex-1, bounds + upperIndex + 1, (edgeCount - upperIndex - 1) * sizeof(b2Bound))
+    ' //  make temp array
+    tArr = New Variant[]
+    tEnd = boundCount - upperIndex - 1
+    For j = 0 To tEnd - 1
+      tArr[j] = New B2Bound()
+      tBound1 = tArr[j]
+      tBound2 = bounds[upperIndex + 1 + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    ' //  move temp array back in to bounds
+    tEnd = tArr.count
+    tIndex = upperIndex - 1
+    
+    For j = 0 To tEnd - 1
+      ' // bounds[tIndex+j] = tArr[j]
+      tBound2 = tArr[j]
+      tBound1 = bounds[tIndex + j]
+      tBound1.value = tBound2.value
+      tBound1.proxyId = tBound2.proxyId
+      tBound1.stabbingCount = tBound2.stabbingCount
+    Next
+    
+    ' //  Fix bound indices.
+    tEnd = boundCount - 2
+    For index = lowerIndex To tEnd - 1
+      
+      proxy2 = Me.m_proxyPool[bounds[index].proxyId]
+      
+      If (bounds[index].IsLower()) Then 
+        proxy2.lowerBounds[axis] = index
+      Else
+        proxy2.upperBounds[axis] = index
+      Endif
+    Next
+    
+    ' //  Fix stabbing count.
+    tEnd = upperIndex - 1
+    For index2 = lowerIndex To tEnd - 1
+      
+      bounds[index2].stabbingCount -= 1
+    Next
+    ' //  me.Query for pairs to be removed. lowerIndex and upperIndex are not needed.
+    ' //  make lowerIndex and upper output using an array and do this for others if compiler doesn't pick them up
+    Me.Query([0], [0], lowerValue, upperValue, bounds, boundCount - 2, axis)
+  Next
+  ' // b2Settings.b2Assert( me.m_queryResultCount < b2Settings.b2_maxProxies)
+  For i = 0 To Me.m_queryResultCount
+    ' // b2Settings.b2Assert( me.m_proxyPool[ me.m_queryResults[i]].IsValid())
+    Me.m_pairManager.RemoveBufferedPair(proxyId, Me.m_queryResults[i])
+  Next
+  
+  Me.m_pairManager.Commit()
+  ' //  Prepare for next query.
+  Me.m_queryResultCount = 0
+  Me.IncrementTimeStamp()
+  ' //  Return the proxy to the pool.
+  proxy.userData = Null
+  proxy.overlapCount = b2BroadPhase.b2_invalid
+  proxy.lowerBounds[0] = b2BroadPhase.b2_invalid
+  proxy.lowerBounds[1] = b2BroadPhase.b2_invalid
+  proxy.upperBounds[0] = b2BroadPhase.b2_invalid
+  proxy.upperBounds[1] = b2BroadPhase.b2_invalid
+  proxy.SetNext(Me.m_freeProxy)
+  Me.m_freeProxy = proxyId
+  Me.m_proxyCount -= 1
+  
+End
+
+' //  Call me.MoveProxy times like, then when you are done
+' //  call me.Commit to finalized the proxy pairs (for your time step).
+
+Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as variant ''funcion
+  
+  Dim axis As Variant = 0
+  
+  Dim index As Variant = 0
+  
+  Dim bound As Variant
+  Dim prevBound As Variant
+  Dim nextBound As Variant
+  Dim nextProxyId As Variant = 0
+  Dim nextProxy As Variant
+  
+  Dim boundCount As Variant 
+  
+  Dim proxy As Variant 
+  
+  Dim newValues As Variant
+  
+  Dim oldValues As Variant
+  
+  Dim bounds As Variant
+  
+  Dim lowerIndex As Variant 
+  
+  Dim upperIndex As Variant 
+  
+  Dim lowerValue As Variant
+  
+  Dim upperValue As Variant 
+  
+  Dim deltaLower As Variant 
+  
+  Dim deltaUpper As Variant 
+  
+  Dim prevProxyId As Variant
+  
+  Dim prevProxy As Variant 
+  
+  If (proxyId = b2Pair.b2_nullProxy And b2Settings.b2_maxProxies <= proxyId) Then 
+    ' // b2Settings.b2Assert(false)
+    Return
+  Endif
+  
+  If (aabb.IsValid() = False) Then 
+    ' // b2Settings.b2Assert(false)
+    Return
+    
+  Endif
+  
+  boundCount = 2 * Me.m_proxyCount
+  
+  proxy = Me.m_proxyPool[proxyId]
+  
+  ' //  Get new bound values
+  newValues = New B2BoundValues()
+  
+  Me.ComputeBounds(newValues.lowerValues, newValues.upperValues, aabb)
+  ' //  Get old bound values
+  oldValues = New B2BoundValues()
+  
+  For axis = 0 To 2
+    oldValues.lowerValues[axis] = Me.m_bounds[axis][proxy.lowerBounds[axis]].value
+    oldValues.upperValues[axis] = Me.m_bounds[axis][proxy.upperBounds[axis]].value
+  Next
+  
+  For axis = 0 To 2
+    
+    bounds = Me.m_bounds[axis]
+    
+    lowerIndex = proxy.lowerBounds[axis]
+    
+    upperIndex = proxy.upperBounds[axis]
+    
+    lowerValue = newValues.lowerValues[axis]
+    
+    upperValue = newValues.upperValues[axis]
+    
+    deltaLower = lowerValue - bounds[lowerIndex].value
+    
+    deltaUpper = upperValue - bounds[upperIndex].value
+    
+    bounds[lowerIndex].value = lowerValue
+    bounds[upperIndex].value = upperValue
+    ' // 
+    ' //  Expanding adds overlaps
+    ' // 
+    ' //  Should we move the lower bound down?
+    If (deltaLower < 0) Then 
+      
+      index = lowerIndex
+      While (index > 0 & & lowerValue < bounds[index - 1].value)
+        bound = bounds[index]
+        prevBound = bounds[index - 1]
+        prevProxyId = prevBound.proxyId
+        
+        prevProxy = Me.m_proxyPool[prevBound.proxyId]
+        
+        prevBound.stabbingCount += 1
+        
+        If (prevBound.IsUpper() = True) Then 
+          
+          If (Me.TestOverlap(newValues, prevProxy)) Then 
+            Me.m_pairManager.AddBufferedPair(proxyId, prevProxyId)
+          Endif
+          
+          prevProxy.upperBounds[axis] += 1
+          bound.stabbingCount += 1
+          
+        Else
+          
+          prevProxy.lowerBounds[axis] += 1
+          bound.stabbingCount -= 1
+        Endif
+        
+        proxy.lowerBounds[axis] -= 1
+        ' //  swap
+        ' // var temp = bound
+        ' // bound = prevEdge
+        ' // prevEdge = temp
+        bound.Swap(prevBound)
+        ' // b2Math.b2Swap(bound, prevEdge)
+        index -= 1
+      Wend
+    Endif
+    
+    ' //  Should we move the upper bound up?
+    If (deltaUpper > 0)thhen 
+      
+      index = upperIndex
+      While (index < boundCount - 1 & & bounds[index + 1].value <= upperValue)
+        
+        bound = bounds[index]
+        nextBound = bounds[index + 1]
+        nextProxyId = nextBound.proxyId
+        nextProxy = Me.m_proxyPool[nextProxyId]
+        nextBound.stabbingCount += 1
+        If (nextBound.IsLower() = True)
+          If (Me.TestOverlap(newValues, nextProxy))
+            Me.m_pairManager.AddBufferedPair(proxyId, nextProxyId)
+          Endif
+          
+          nextProxy.lowerBounds[axis] -= 1
+          bound.stabbingCount += 1
+          
+        Else
+          nextProxy.upperBounds[axis] -= 1
+          bound.stabbingCount -= 1
+        Endif
+        
+        proxy.upperBounds[axis] += 1
+        ' //  swap
+        ' // var temp = bound
+        ' // bound = nextEdge
+        ' // nextEdge = temp
+        bound.Swap(nextBound)
+        ' // b2Math.b2Swap(bound, nextEdge)
+        index += 1
+      Wend
+      
+    Endif
+    
+    ' // 
+    ' //  Shrinking removes overlaps
+    ' // 
+    ' //  Should we move the lower bound up?
+    If (deltaLower > 0) Then 
+      
+      index = lowerIndex
+      While (index < boundCount - 1 & & bounds[index + 1].value <= lowerValue)
+        
+        bound = bounds[index]
+        nextBound = bounds[index + 1]
+        nextProxyId = nextBound.proxyId
+        nextProxy = Me.m_proxyPool[nextProxyId]
+        nextBound.stabbingCount -= 1
+        If (nextBound.IsUpper())
+          
+          If (Me.TestOverlap(oldValues, nextProxy))
+            
+            Me.m_pairManager.RemoveBufferedPair(proxyId, nextProxyId)
+          Endif
+          
+          nextProxy.upperBounds[axis] -= 1
+          bound.stabbingCount -= 1
+          
+        Else
+          
+          nextProxy.lowerBounds[axis] -= 1
+          bound.stabbingCount += 1
+        Endif
+        
+        proxy.lowerBounds[axis] += 1
+        ' //  swap
+        ' // var temp = bound
+        ' // bound = nextEdge
+        ' // nextEdge = temp
+        bound.Swap(nextBound)
+        ' // b2Math.b2Swap(bound, nextEdge)
+        index += 1
+      Wend
+    Endif
+    
+    ' //  Should we move the upper bound down?
+    If (deltaUpper < 0) Then
+      
+      index = upperIndex
+      While (index > 0 & & upperValue < bounds[index - 1].value)
+        
+        bound = bounds[index]
+        prevBound = bounds[index - 1]
+        prevProxyId = prevBound.proxyId
+        prevProxy = Me.m_proxyPool[prevProxyId]
+        prevBound.stabbingCount -= 1
+        If (prevBound.IsLower() = True) Then 
+          If (Me.TestOverlap(oldValues, prevProxy))
+            Me.m_pairManager.RemoveBufferedPair(proxyId, prevProxyId)
+          Endif
+          
+          prevProxy.lowerBounds[axis] += 1
+          bound.stabbingCount -= 1
+          
+        Else
+          
+          prevProxy.upperBounds[axis] += 1
+          bound.stabbingCount += 1
+        Endif
+        
+        proxy.upperBounds[axis] -= 1
+        ' //  swap
+        ' // var temp = bound
+        ' // bound = prevEdge
+        ' // prevEdge = temp
+        bound.Swap(prevBound)
+        ' // b2Math.b2Swap(bound, prevEdge)
+        index -= 1
+      Wend
+      
+    Endif
+  Next
+  
+End
+
+Public Sub Commit()  ''funcion
+  
+  Me.m_pairManager.Commit()
+  
+End
+
+' //  me.Query an AABB for overlapping proxies, returns the user data and '' TODO: posible funcion (revisar)
+' //  the count, up to the supplied maximum count.
+
+Public Sub QueryAABB(aabb As Variant, userData As Variant, maxCount As Variant) As Variant ''funcion
+  
+  Dim lowerValues As New Variant[]
+  
+  Dim upperValues As New Variant[]
+  
+  Dim lowerIndex As Variant = 0
+  
+  Dim upperIndex As Variant = 0
+  
+  Dim lowerIndexOut As New Variant[] = [lowerIndex]
+  
+  Dim upperIndexOut As New Variant[] = [upperIndex]
+  Dim count As Integer = 0
+  Dim i As Integer
+  Dim proxy As Variant
+  
+  Me.ComputeBounds(lowerValues, upperValues, aabb)
+  Me.Query(lowerIndexOut, upperIndexOut, lowerValues[0], upperValues[0], Me.m_bounds[0], 2 * Me.m_proxyCount, 0)
+  Me.Query(lowerIndexOut, upperIndexOut, lowerValues[1], upperValues[1], Me.m_bounds[1], 2 * Me.m_proxyCount, 1)
+  ' // b2Settings.b2Assert( me.m_queryResultCount < b2Settings.b2_maxProxies)
+  
+  lowerIndexOut = [lowerIndex]
+  
+  upperIndexOut = [upperIndex]
+  
+  i = 0
+  While (i < Me.m_queryResultCount & & count < maxCount)
+    i += 1
+    count = +1
+    ' // b2Settings.b2Assert( me.m_queryResults[i] < b2Settings.b2_maxProxies)
+    proxy = Me.m_proxyPool[Me.m_queryResults[i]]
+    
+    ' // b2Settings.b2Assert(proxy.IsValid())
+    userData[i] = proxy.userData
+  Wend
+  
+  ' //  Prepare for next query.
+  Me.m_queryResultCount = 0
+  Me.IncrementTimeStamp()
+  Return count
+  
+End
+
+Public Sub Validate()
+  
+  Dim pair As Variant
+  Dim proxy1 As Variant
+  Dim proxy2 As Variant
+  Dim overlap As Variant
+  
+  Dim axis As Integer
+  
+  Dim bounds As Variant
+  
+  Dim boundCount As Variant 
+  
+  Dim stabbingCount As Integer = 0
+  Dim i As Integer
+  Dim bound As Variant
+  
+  For axis = 0 To 2
+    bounds = Me.m_bounds[axis]
+    
+    boundCount = 2 * Me.m_proxyCount
+    
+    stabbingCount = 0
+    
+    For i = 0 To boundCount
+      bound = bounds[i]
+      
+      ' // b2Settings.b2Assert(i == 0 || bounds[i-1].value <= bound->value)
+      ' // b2Settings.b2Assert(bound->proxyId != b2_nullProxy)
+      ' // b2Settings.b2Assert( me.m_proxyPool[bound->proxyId].IsValid())
+      If (bound.IsLower() = True)
+        
+        ' // b2Settings.b2Assert( me.m_proxyPool[bound.proxyId].lowerBounds[axis] == i)
+        stabbingCount = -1
+        
+      Else
+        
+        ' // b2Settings.b2Assert( me.m_proxyPool[bound.proxyId].upperBounds[axis] == i)
+        stabbingCount - -
+        Endif
+    Next
+    ' // b2Settings.b2Assert(bound.stabbingCount == stabbingCount)
+  Next
+  
+End
+
+Public Sub ComputeBounds(lowerValues As Variant, upperValues As Variant, aabb As Variant)
+  
+  ' // b2Settings.b2Assert(aabb.maxVertex.x > aabb.minVertex.x)
+  ' // b2Settings.b2Assert(aabb.maxVertex.y > aabb.minVertex.y)
+  ' // var minVertex = b2Math.b2ClampV(aabb.minVertex, me.m_worldAABB.minVertex, me.m_worldAABB.maxVertex)
+  Dim minVertexX As Variant = aabb.minVertex.x
+  
+  Dim minVertexY As Variant = aabb.minVertex.y
+  Dim maxVertexX As Variant = aabb.maxVertex.x
+  
+  Dim maxVertexY As Variant = aabb.maxVertex.y
+  
+  minVertexX = b2Math.b2Min(minVertexX, Me.m_worldAABB.maxVertex.x)
+  minVertexY = b2Math.b2Min(minVertexY, Me.m_worldAABB.maxVertex.y)
+  minVertexX = b2Math.b2Max(minVertexX, Me.m_worldAABB.minVertex.x)
+  minVertexY = b2Math.b2Max(minVertexY, Me.m_worldAABB.minVertex.y)
+  ' // var maxVertex = b2Math.b2ClampV(aabb.maxVertex, me.m_worldAABB.minVertex, me.m_worldAABB.maxVertex)
+  
+  maxVertexX = b2Math.b2Min(maxVertexX, Me.m_worldAABB.maxVertex.x)
+  maxVertexY = b2Math.b2Min(maxVertexY, Me.m_worldAABB.maxVertex.y)
+  maxVertexX = b2Math.b2Max(maxVertexX, Me.m_worldAABB.minVertex.x)
+  maxVertexY = b2Math.b2Max(maxVertexY, Me.m_worldAABB.minVertex.y)
+  ' //  Bump lower bounds downs and upper bounds up. This ensures correct sorting of
+  ' //  lower/upper bounds that would have equal values.
+  ' //  TODO_ERIN implement fast float to uint16 conversion.
+  lowerValues[0] = ' /* uint*/( me.m_quantizationFactor.x * (minVertexX - me.m_worldAABB.minVertex.x)) & (b2Settings.USHRT_MAX - 1)
+    upperValues[0] = ( ' /* uint*/( me.m_quantizationFactor.x * (maxVertexX - me.m_worldAABB.minVertex.x))& 0x0000ffff) | 1
+    lowerValues[1] = ' /* uint*/( me.m_quantizationFactor.y * (minVertexY - me.m_worldAABB.minVertex.y)) & (b2Settings.USHRT_MAX - 1)
+    upperValues[1] = ( ' /* uint*/( me.m_quantizationFactor.y * (maxVertexY - me.m_worldAABB.minVertex.y))& 0x0000ffff) | 1
+  ' //  This one is only used for validation.
+  
+End
+
+Public Sub TestOverlapValidate(p1 As Variant, p2 As Variant) As Variant ''funcio as variant ''funcio as variant ''funcion
+  
+  Dim axis As Integer
+  Dim bounds As Variant
+  
+  For axis = 0 To 2
+    bounds = Me.m_bounds[axis]
+    
+    ' // b2Settings.b2Assert(p1.lowerBounds[axis] < 2 * me.m_proxyCount)
+    ' // b2Settings.b2Assert(p1.upperBounds[axis] < 2 * me.m_proxyCount)
+    ' // b2Settings.b2Assert(p2.lowerBounds[axis] < 2 * me.m_proxyCount)
+    ' // b2Settings.b2Assert(p2.upperBounds[axis] < 2 * me.m_proxyCount)
+    If (bounds[p1.lowerBounds[axis]].value > bounds[p2.upperBounds[axis]].value)
+      Return False
+    Endif
+    
+    If (bounds[p1.upperBounds[axis]].value < bounds[p2.lowerBounds[axis]].value)
+      Return False
+    Endif
+    
+    Return True
+    
+End
+
+Public Sub TestOverlap(b As Variant, p As Variant) As Variant ''funcio as variant ''funcio as variant ''funcion
+  
+  Dim axis As Integer
+  Dim bounds As Variant
+  
+  For axis = 0 To 2
+    bounds = Me.m_bounds[axis]
+    
+    ' // b2Settings.b2Assert(p.lowerBounds[axis] < 2 * me.m_proxyCount)
+    ' // b2Settings.b2Assert(p.upperBounds[axis] < 2 * me.m_proxyCount)
+    If (b.lowerValues[axis] > bounds[p.upperBounds[axis]].value) Then
+      Return False
+    Endif
+    
+    If (b.upperValues[axis] < bounds[p.lowerBounds[axis]].value) Then
+      Return False
+    Endif
+    
+    Return True
+    
+End
+
+Public Sub Query(lowerQueryOut As Variant, upperQueryOut As Variant, lowerValue As Variant, upperValue As Variant, bounds As Variant, boundCount As Variant, axis As Variant)
+  
+  Dim lowerQuery As Variant = b2BroadPhase.BinarySearch(bounds, boundCount, lowerValue)
+  Dim upperQuery As Variant = b2BroadPhase.BinarySearch(bounds, boundCount, upperValue)
+  Dim j As Integer
+  Dim proxy As Variant
+  ' //  Easy case: lowerQuery <= lowerIndex(i) < upperQuery
+  ' //  Solution: search query range for min bounds.
+  For j = lowerQuery To upperQuery
+    If (bounds[j].IsLower())
+      Me.IncrementOverlapCount(bounds[j].proxyId)
+    Endif
+  Next
+  ' //  Hard case: lowerIndex(i) < lowerQuery < upperIndex(i)
+  ' //  Solution: use the stabbing count to search down the bound array.
+  If (lowerQuery > 0) Then 
+    i = lowerQuery - 1
+    
+    s = bounds[i].stabbingCount
+    
+    ' //  Find the s overlaps.
+    While (s)
+      ' // b2Settings.b2Assert(i >= 0)
+      If (bounds[i].IsLower()) Then 
+        proxy = Me.m_proxyPool[bounds[i].proxyId]
+        
+        If (lowerQuery <= proxy.upperBounds[axis]) Then
+          Me.IncrementOverlapCount(bounds[i].proxyId)
+          s = -1
+        Endif
+      Endif
+      i = -1
+    Wend
+  Endif
+  
+  lowerQueryOut[0] = lowerQuery
+  upperQueryOut[0] = upperQuery
+  
+End
+
+Public Sub IncrementOverlapCount(proxyId As Variant)
+  
+  Dim proxy As Variant = Me.m_proxyPool[proxyId]
+  
+  If (proxy.timeStamp < Me.m_timeStamp) Then 
+    proxy.timeStamp = Me.m_timeStamp
+    proxy.overlapCount = 1
+  Else
+    proxy.overlapCount = 2
+    ' // b2Settings.b2Assert( me.m_queryResultCount < b2Settings.b2_maxProxies)
+    Me.m_queryResults[Me.m_queryResultCount] = proxyId
+    Me.m_queryResultCount += 1
+  Endif
+  
+End
+
+Public Sub IncrementTimeStamp()
+  
+  Dim i As Integer
+  
+  If (Me.m_timeStamp = b2Settings.USHRT_MAX)
+    For i = 0 To b2Settings.b2_maxProxies
+      Me.m_proxyPool[i].timeStamp = 0
+    Next
+    Me.m_timeStamp = 1
+  Else
+    + + Me.m_timeStamp
+  Endif
+  
+End
+
+Public Sub BinarySearch(bounds As Variant, count As Variant, value As Variant) As Variant ''funcio as variant ''funcion
+  
+  Dim low As Variant = 0
+  
+  Dim high As Variant = count - 1
+  Dim midd As Integer
+  
+  While (low <= high)
+    midd = Math.floor((low + high) / 2)
+    If (bounds[midd].value > value) Then 
+      high = midd - 1
+    Else 
+      If (bounds[midd].value < value) Then 
+        low = midd + 1
+      Else
+        Return (midd)
+      Endif
+    Wend
+    
+    Return (low)
+    
+End

@@ -1,0 +1,64 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not    
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  We use contact ids to facilitate warm starting.
+
+Public features = New Features() '' cuidado que es en minusculas
+Public _key As Float = 0
+
+Public Sub _new()
+  
+  ' //  initialize instance variables for references
+  Me.features = New Features()
+  ' // 
+  Me.features._m_id = Me
+  
+End
+
+Public Sub Set(id As Variant)
+  
+  Me.set_key(id._key)
+  
+End
+
+Public Sub Copy() As Variant ''funcion
+  
+  Dim id As Variant = New B2ContactID()
+  
+  id.set_key(Me._key)
+  Return id
+  
+End
+
+Public Sub get_key() As Variant 
+  
+  Return Me._key
+  
+End
+
+Public Sub set_key(value As Variant)
+  
+  Me._key = value
+  Me.features._referenceFace = Me._key & 0 x000000ff
+  Me.features._incidentEdge = ((Me._key & 0 x0000ff00) > > 8) & 0 x000000ff
+  Me.features._incidentVertex = ((Me._key & 0 x00ff0000) > > 16) & 0 x000000ff
+  Me.features._flip = ((Me._key & 0 xff000000) > > 24) & 0 x000000ff
+  
+End

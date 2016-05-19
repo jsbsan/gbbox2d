@@ -1,0 +1,670 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not    
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Inherits B2Joint
+
+Public m_ground As Variant = Null,
+  Public m_groundAnchor1 As Variant = New B2Vec2()
+Public m_groundAnchor2 As Variant = New B2Vec2()
+Public m_localAnchor1 As Variant = New B2Vec2()
+Public m_localAnchor2 As Variant = New B2Vec2()
+
+Public m_u1 As Variant = New B2Vec2()
+Public m_u2 As Variant = New B2Vec2()
+
+Public m_constant As Variant = Null
+Public m_ratio As Variant = Null
+
+Public m_maxLength1 As Variant = Null
+Public m_maxLength2 As Variant = Null
+
+'// Effective masses
+Public m_pulleyMass As Variant = Null
+Public m_limitMass1 As Variant = Null
+Public m_limitMass2 As Variant = Null
+
+' // Impulses for accumulation/warm starting.
+Public m_pulleyImpulse As Variant = Null
+Public m_limitImpulse1 As Variant = Null
+Public m_limitImpulse2 As Variant = Null
+
+' // Position impulses for accumulation.
+Public m_limitPositionImpulse1 As Variant = Null
+Public m_limitPositionImpulse2 As Variant = Null
+
+Public m_limitState1 As Variant = 0
+Public m_limitState2 As Variant = 0
+
+Public b2_minPulleyLength As Variant = b2Settings.b2_lengthUnitsPerMeter
+
+Public Sub GetAnchor1() As Variant ''funcio as variant ''funcion
+  ' // return me.m_body1->m_position + b2Mul( me.m_body1->m_R ,me.m_localAnchor1)
+  
+  Dim tMat As Variant = Me.m_body1.m_R
+
+  Return New B2Vec2(Me.m_body1.m_position.x + (tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y), Me.m_body1.m_position.y + (tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y))
+  
+End
+
+Public Sub GetAnchor2() As Variant ''funcio as variant ''funcion
+  ' // return me.m_body2->m_position + b2Mul( me.m_body2->m_R, me.m_localAnchor2)
+  
+  Dim tMat As Variant = Me.m_body2.m_R
+  
+  Return New B2Vec2(Me.m_body2.m_position.x + (tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y), Me.m_body2.m_position.y + (tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y))
+  
+End
+
+Public Sub GetGroundPoint1() As Variant ''funcio as variant ''funcion
+  ' // return me.m_ground->m_position + me.m_groundAnchor1
+  
+  Return New B2Vec2(Me.m_ground.m_position.x + Me.m_groundAnchor1.x, Me.m_ground.m_position.y + Me.m_groundAnchor1.y)
+  
+End
+
+Public Sub GetGroundPoint2() As Variant ''funcion
+  
+  Return New B2Vec2(Me.m_ground.m_position.x + Me.m_groundAnchor2.x, Me.m_ground.m_position.y + Me.m_groundAnchor2.y)
+  
+End
+
+Public Sub GetReactionForce(invTimeStep As Variant) As Variant ''funcion
+  ' // b2Vec2 F(0.0f, 0.0f)
+  
+  Return New B2Vec2()
+  
+End
+
+Public Sub GetReactionTorque(invTimeStep As Variant) As Variant ''funcion
+  
+  Return 0.0
+  
+End
+
+Public Sub GetLength1() As Float  ''funcion
+  
+  Dim tMat As Variant
+  Dim dX As Variant
+  Dim dY As Variant
+  Dim pX As Variant
+  Dim pY As Variant
+  ' // b2Vec2 p = me.m_body1->m_position + b2Mul( me.m_body1->m_R, me.m_localAnchor1)
+  tMat = Me.m_body1.m_R
+  pX = Me.m_body1.m_position.x + (tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y)
+  
+  pY = Me.m_body1.m_position.y + (tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y)
+  
+  ' // b2Vec2 s = me.m_ground->m_position + me.m_groundAnchor1
+  ' // b2Vec2 d = p - s
+  dX = pX - (Me.m_ground.m_position.x + Me.m_groundAnchor1.x)
+  
+  dY = pY - (Me.m_ground.m_position.y + Me.m_groundAnchor1.y)
+  
+  Return sqrt(dX * dX + dY * dY)
+  
+End
+
+Public Sub GetLength2() As Variant ''funcion
+  
+  Dim tMat As Variant
+  Dim dX As Variant
+  Dim dY As Variant
+  Dim pX As Variant
+  Dim pY As Variant
+  ' // b2Vec2 p = me.m_body2->m_position + b2Mul( me.m_body2->m_R, me.m_localAnchor2)
+  tMat = Me.m_body2.m_R
+  pX = Me.m_body2.m_position.x + (tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y)
+  
+  pY = Me.m_body2.m_position.y + (tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y)
+  
+  ' // b2Vec2 s = me.m_ground->m_position + me.m_groundAnchor2
+  ' // b2Vec2 d = p - s
+  dX = pX - (Me.m_ground.m_position.x + Me.m_groundAnchor2.x)
+  
+  dY = pY - (Me.m_ground.m_position.y + Me.m_groundAnchor2.y)
+  
+  Return sqrt(dX * dX + dY * dY)
+  
+End
+
+Public Sub GetRatio() As Variant ''funcion
+  
+  Return Me.m_ratio
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(def As Variant)
+  
+  Dim tMat As Variant
+  Dim tX As Variant
+  Dim tY As Variant
+  
+  Dim d1Len As Variant 
+  Dim d2Len As Variant
+  Dim length1 As Variant
+  Dim length2 As Variant
+  
+  ' //  The constructor for b2Joint
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2JointNode()
+  Me.m_node2 = New B2JointNode()
+  ' // 
+  Me.m_type = def.type
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_body1 = def.body1
+  Me.m_body2 = def.body2
+  Me.m_collideConnected = def.collideConnected
+  Me.m_islandFlag = False
+  Me.m_userData = def.userData
+  ' // 
+  ' //  initialize instance variables for references
+  Me.m_groundAnchor1 = New B2Vec2()
+  Me.m_groundAnchor2 = New B2Vec2()
+  Me.m_localAnchor1 = New B2Vec2()
+  Me.m_localAnchor2 = New B2Vec2()
+  Me.m_u1 = New B2Vec2()
+  Me.m_u2 = New B2Vec2()
+  ' // 
+  ' //  parent
+  ' // super(def)
+  Me.m_ground = Me.m_body1.m_world.m_groundBody
+  ' // me.m_groundAnchor1 = def.groundPoint1 - me.m_ground.m_position
+  Me.m_groundAnchor1.x = def.groundPoint1.x - Me.m_ground.m_position.x
+  Me.m_groundAnchor1.y = def.groundPoint1.y - Me.m_ground.m_position.y
+  ' // me.m_groundAnchor2 = def.groundPoint2 - me.m_ground.m_position
+  Me.m_groundAnchor2.x = def.groundPoint2.x - Me.m_ground.m_position.x
+  Me.m_groundAnchor2.y = def.groundPoint2.y - Me.m_ground.m_position.y
+  ' // me.m_localAnchor1 = b2MulT( me.m_body1.m_R, def.anchorPoint1 - me.m_body1.m_position)
+  tMat = Me.m_body1.m_R
+  tX = def.anchorPoint1.x - Me.m_body1.m_position.x
+  tY = def.anchorPoint1.y - Me.m_body1.m_position.y
+  Me.m_localAnchor1.x = tX * tMat.col1.x + tY * tMat.col1.y
+  Me.m_localAnchor1.y = tX * tMat.col2.x + tY * tMat.col2.y
+  ' // me.m_localAnchor2 = b2MulT( me.m_body2.m_R, def.anchorPoint2 - me.m_body2.m_position)
+  tMat = Me.m_body2.m_R
+  tX = def.anchorPoint2.x - Me.m_body2.m_position.x
+  tY = def.anchorPoint2.y - Me.m_body2.m_position.y
+  Me.m_localAnchor2.x = tX * tMat.col1.x + tY * tMat.col1.y
+  Me.m_localAnchor2.y = tX * tMat.col2.x + tY * tMat.col2.y
+  Me.m_ratio = def.ratio
+  ' // var d1 = def.groundPoint1 - def.anchorPoint1
+  tX = def.groundPoint1.x - def.anchorPoint1.x
+  tY = def.groundPoint1.y - def.anchorPoint1.y
+  d1Len = sqrt(tX * tX + tY * tY)
+  
+  ' // var d2 = def.groundPoint2 - def.anchorPoint2
+  tX = def.groundPoint2.x - def.anchorPoint2.x
+  tY = def.groundPoint2.y - def.anchorPoint2.y
+  d2Len = sqrt(tX * tX + tY * tY)
+  
+  length1 = b2Math.b2Max(0.5 * b2PulleyJoint.b2_minPulleyLength, d1Len)
+  
+  length2 = b2Math.b2Max(0.5 * b2PulleyJoint.b2_minPulleyLength, d2Len)
+  
+  Me.m_constant = length1 + Me.m_ratio * length2
+  Me.m_maxLength1 = b2Math.b2Clamp(def.maxLength1, length1, Me.m_constant - Me.m_ratio * b2PulleyJoint.b2_minPulleyLength)
+  Me.m_maxLength2 = b2Math.b2Clamp(def.maxLength2, length2, (Me.m_constant - b2PulleyJoint.b2_minPulleyLength) / Me.m_ratio)
+  Me.m_pulleyImpulse = 0.0
+  Me.m_limitImpulse1 = 0.0
+  Me.m_limitImpulse2 = 0.0
+  
+End
+
+Public Sub PrepareVelocitySolver()
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  Dim r1X As Variant 
+  
+  Dim r1Y As Variant 
+  
+  Dim r2X As Variant 
+  
+  Dim r2Y As Variant 
+  
+  ' // b2Vec2 p1 = b1->m_position + r1
+  Dim p1X As Variant 
+  
+  Dim p1Y As Variant 
+  
+  ' // b2Vec2 p2 = b2->m_position + r2
+  Dim p2X As Variant 
+  
+  Dim p2Y As Variant 
+  
+  ' // b2Vec2 s1 = me.m_ground->m_position + me.m_groundAnchor1
+  Dim s1X As Variant 
+  
+  Dim s1Y As Variant 
+  
+  Dim s2X As Variant 
+  
+  Dim s2Y As Variant 
+  
+  Dim length1 As Variant 
+  
+  Dim length2 As Variant 
+  
+  Dim cr1u1 As Variant
+  Dim cr2u2 As Variant
+  
+  Dim P1X As Variant
+  
+  Dim P1Y As Variant 
+  
+  Dim P2X As Variant
+  
+  Dim P2Y As Variant
+  
+  ' // b2Vec2 r1 = b2Mul(b1->m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // b2Vec2 p1 = b1->m_position + r1
+  p1X = b1.m_position.x + r1X
+  
+  p1Y = b1.m_position.y + r1Y
+  
+  ' // b2Vec2 p2 = b2->m_position + r2
+  p2X = b2.m_position.x + r2X
+  
+  p2Y = b2.m_position.y + r2Y
+  
+  ' // b2Vec2 s1 = me.m_ground->m_position + me.m_groundAnchor1
+  s1X = Me.m_ground.m_position.x + Me.m_groundAnchor1.x
+  
+  s1Y = Me.m_ground.m_position.y + Me.m_groundAnchor1.y
+  
+  ' // b2Vec2 s2 = me.m_ground->m_position + me.m_groundAnchor2
+  s2X = Me.m_ground.m_position.x + Me.m_groundAnchor2.x
+  
+  s2Y = Me.m_ground.m_position.y + Me.m_groundAnchor2.y
+  
+  ' //  Get the pulley axes.
+  ' // me.m_u1 = p1 - s1
+  Me.m_u1.Set(p1X - s1X, p1Y - s1Y)
+  ' // me.m_u2 = p2 - s2
+  Me.m_u2.Set(p2X - s2X, p2Y - s2Y)
+  length1 = Me.m_u1.Length()
+  
+  length2 = Me.m_u2.Length()
+  
+  If (length1 > b2Settings.b2_linearSlop) Then
+    ' // me.m_u1 *= 1.0f / length1
+    Me.m_u1.Multiply(1.0 / length1)
+  Else
+    Me.m_u1.SetZero()
+  Endif
+  
+  If (length2 > b2Settings.b2_linearSlop) Then 
+    ' // me.m_u2 *= 1.0f / length2 
+    Me.m_u2.Multiply(1.0 / length2)
+  Else
+    Me.m_u2.SetZero()
+  Endif
+  
+  If (length1 < Me.m_maxLength1) Then 
+    Me.m_limitState1 = b2Joint.e_inactiveLimit
+    Me.m_limitImpulse1 = 0.0
+  Else
+    Me.m_limitState1 = b2Joint.e_atUpperLimit
+    Me.m_limitPositionImpulse1 = 0.0
+  Endif
+  
+  If (length2 < Me.m_maxLength2) Then 
+    Me.m_limitState2 = b2Joint.e_inactiveLimit 
+    Me.m_limitImpulse2 = 0.0
+  Else
+    Me.m_limitState2 = b2Joint.e_atUpperLimit
+    Me.m_limitPositionImpulse2 = 0.0
+  Endif
+  
+  ' //  Compute effective mass.
+  ' // var cr1u1 = b2Cross(r1, me.m_u1)
+  cr1u1 = r1X * Me.m_u1.y - r1Y * Me.m_u1.x
+  
+  ' // var cr2u2 = b2Cross(r2, me.m_u2)
+  cr2u2 = r2X * Me.m_u2.y - r2Y * Me.m_u2.x
+  
+  Me.m_limitMass1 = b1.m_invMass + b1.m_invI * cr1u1 * cr1u1
+  Me.m_limitMass2 = b2.m_invMass + b2.m_invI * cr2u2 * cr2u2
+  Me.m_pulleyMass = Me.m_limitMass1 + Me.m_ratio * Me.m_ratio * Me.m_limitMass2
+  ' // b2Settings.b2Assert( me.m_limitMass1 > Number.MIN_VALUE)
+  ' // b2Settings.b2Assert( me.m_limitMass2 > Number.MIN_VALUE)
+  ' // b2Settings.b2Assert( me.m_pulleyMass > Number.MIN_VALUE)
+  Me.m_limitMass1 = 1.0 / Me.m_limitMass1
+  Me.m_limitMass2 = 1.0 / Me.m_limitMass2
+  Me.m_pulleyMass = 1.0 / Me.m_pulleyMass
+  ' //  Warm starting.
+  ' // b2Vec2 P1 = (- me.m_pulleyImpulse - me.m_limitImpulse1) * me.m_u1
+  P1X = (- Me.m_pulleyImpulse - Me.m_limitImpulse1) * Me.m_u1.x
+  
+  P1Y = (- Me.m_pulleyImpulse - Me.m_limitImpulse1) * Me.m_u1.y
+  
+  ' // b2Vec2 P2 = (- me.m_ratio * me.m_pulleyImpulse - me.m_limitImpulse2) * me.m_u2
+  P2X = (- Me.m_ratio * Me.m_pulleyImpulse - Me.m_limitImpulse2) * Me.m_u2.x
+  
+  P2Y = (- Me.m_ratio * Me.m_pulleyImpulse - Me.m_limitImpulse2) * Me.m_u2.y
+  
+  ' // b1.m_linearVelocity += b1.m_invMass * P1
+  b1.m_linearVelocity.x += b1.m_invMass * P1X
+  b1.m_linearVelocity.y += b1.m_invMass * P1Y
+  ' // b1.m_angularVelocity += b1.m_invI * b2Cross(r1, P1)
+  b1.m_angularVelocity += b1.m_invI * (r1X * P1Y - r1Y * P1X)
+  ' // b2.m_linearVelocity += b2.m_invMass * P2
+  b2.m_linearVelocity.x += b2.m_invMass * P2X
+  b2.m_linearVelocity.y += b2.m_invMass * P2Y
+  ' // b2.m_angularVelocity += b2.m_invI * b2Cross(r2, P2)
+  b2.m_angularVelocity += b2.m_invI * (r2X * P2Y - r2Y * P2X)
+  
+End
+
+Public Sub SolveVelocityConstraints( Step As Variant)
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  ' //  temp vars
+  Dim v1X As Variant
+  Dim v1Y As Variant
+  Dim v2X As Variant
+  Dim v2Y As Variant
+  Dim P1X As Variant
+  Dim P1Y As Variant
+  Dim P2X As Variant
+  Dim P2Y As Variant
+  Dim Cdot As Variant
+  Dim impulse As Variant
+  Dim oldLimitImpulse As Variant
+  
+  Dim r1X As Variant 
+  Dim r1Y As Variant
+  Dim r2X As Variant
+  Dim r2Y As Variant
+  ' // var r1 = b2Mul(b1.m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  ' // var r2 = b2Mul(b2.m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // 
+  ' // b2Vec2 v1 = b1->m_linearVelocity + b2Cross(b1->m_angularVelocity, r1)
+  v1X = b1.m_linearVelocity.x + (- b1.m_angularVelocity * r1Y)
+  v1Y = b1.m_linearVelocity.y + (b1.m_angularVelocity * r1X)
+  ' // b2Vec2 v2 = b2->m_linearVelocity + b2Cross(b2->m_angularVelocity, r2)
+  v2X = b2.m_linearVelocity.x + (- b2.m_angularVelocity * r2Y)
+  v2Y = b2.m_linearVelocity.y + (b2.m_angularVelocity * r2X)
+  ' // Cdot = -b2Dot( me.m_u1, v1) - me.m_ratio * b2Dot( me.m_u2, v2)
+  Cdot = - (Me.m_u1.x * v1X + Me.m_u1.y * v1Y) - Me.m_ratio * (Me.m_u2.x * v2X + Me.m_u2.y * v2Y)
+  impulse = - Me.m_pulleyMass * Cdot
+  Me.m_pulleyImpulse += impulse
+  ' // b2Vec2 P1 = -impulse * me.m_u1
+  P1X = - impulse * Me.m_u1.x
+  P1Y = - impulse * Me.m_u1.y
+  ' // b2Vec2 P2 = - me.m_ratio * impulse * me.m_u2
+  P2X = - Me.m_ratio * impulse * Me.m_u2.x
+  P2Y = - Me.m_ratio * impulse * Me.m_u2.y
+  ' // b1.m_linearVelocity += b1.m_invMass * P1
+  b1.m_linearVelocity.x += b1.m_invMass * P1X
+  b1.m_linearVelocity.y += b1.m_invMass * P1Y
+  ' // b1.m_angularVelocity += b1.m_invI * b2Cross(r1, P1)
+  b1.m_angularVelocity += b1.m_invI * (r1X * P1Y - r1Y * P1X)
+  ' // b2.m_linearVelocity += b2.m_invMass * P2
+  b2.m_linearVelocity.x += b2.m_invMass * P2X
+  b2.m_linearVelocity.y += b2.m_invMass * P2Y
+  ' // b2.m_angularVelocity += b2.m_invI * b2Cross(r2, P2)
+  b2.m_angularVelocity += b2.m_invI * (r2X * P2Y - r2Y * P2X)
+  ' // 
+  If (Me.m_limitState1 = b2Joint.e_atUpperLimit) Then 
+    ' // b2Vec2 v1 = b1->m_linearVelocity + b2Cross(b1->m_angularVelocity, r1)
+    v1X = b1.m_linearVelocity.x + (- b1.m_angularVelocity * r1Y)
+    v1Y = b1.m_linearVelocity.y + (b1.m_angularVelocity * r1X)
+    ' // float32 Cdot = -b2Dot( me.m_u1, v1)
+    Cdot = - (Me.m_u1.x * v1X + Me.m_u1.y * v1Y)
+    impulse = - Me.m_limitMass1 * Cdot
+    oldLimitImpulse = Me.m_limitImpulse1
+    Me.m_limitImpulse1 = b2Math.b2Max(0.0, Me.m_limitImpulse1 + impulse)
+    impulse = Me.m_limitImpulse1 - oldLimitImpulse
+    ' // b2Vec2 P1 = -impulse * me.m_u1
+    P1X = - impulse * Me.m_u1.x
+    P1Y = - impulse * Me.m_u1.y
+    ' // b1.m_linearVelocity += b1->m_invMass * P1
+    b1.m_linearVelocity.x += b1.m_invMass * P1X
+    b1.m_linearVelocity.y += b1.m_invMass * P1Y
+    ' // b1.m_angularVelocity += b1->m_invI * b2Cross(r1, P1)
+    b1.m_angularVelocity += b1.m_invI * (r1X * P1Y - r1Y * P1X)
+  Endif
+  
+  If (Me.m_limitState2 = b2Joint.e_atUpperLimit) Then 
+    ' // b2Vec2 v2 = b2->m_linearVelocity + b2Cross(b2->m_angularVelocity, r2)
+    v2X = b2.m_linearVelocity.x + (- b2.m_angularVelocity * r2Y)
+    v2Y = b2.m_linearVelocity.y + (b2.m_angularVelocity * r2X)
+    ' // float32 Cdot = -b2Dot( me.m_u2, v2)
+    Cdot = - (Me.m_u2.x * v2X + Me.m_u2.y * v2Y)
+    impulse = - Me.m_limitMass2 * Cdot
+    oldLimitImpulse = Me.m_limitImpulse2
+    Me.m_limitImpulse2 = b2Math.b2Max(0.0, Me.m_limitImpulse2 + impulse)
+    impulse = Me.m_limitImpulse2 - oldLimitImpulse
+    ' // b2Vec2 P2 = -impulse * me.m_u2
+    P2X = - impulse * Me.m_u2.x
+    P2Y = - impulse * Me.m_u2.y
+    ' // b2->m_linearVelocity += b2->m_invMass * P2
+    b2.m_linearVelocity.x += b2.m_invMass * P2X
+    b2.m_linearVelocity.y += b2.m_invMass * P2Y
+    ' // b2->m_angularVelocity += b2->m_invI * b2Cross(r2, P2)
+    b2.m_angularVelocity += b2.m_invI * (r2X * P2Y - r2Y * P2X)
+  Endif
+  
+End
+
+Public Sub SolvePositionConstraints() As Variant ''funcion
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  ' // b2Vec2 s1 = me.m_ground->m_position + me.m_groundAnchor1
+  Dim s1X As Variant = Me.m_ground.m_position.x + Me.m_groundAnchor1.x
+  
+  Dim s1Y As Variant = Me.m_ground.m_position.y + Me.m_groundAnchor1.y
+  
+  ' // b2Vec2 s2 = me.m_ground->m_position + me.m_groundAnchor2
+  Dim s2X As Variant = Me.m_ground.m_position.x + Me.m_groundAnchor2.x
+  
+  Dim s2Y As Variant = Me.m_ground.m_position.y + Me.m_groundAnchor2.y
+  
+  ' //  temp vars
+  Dim r1X As Variant
+  Dim r1Y As Variant
+  Dim r2X As Variant
+  Dim r2Y As Variant
+  Dim p1X As Variant
+  Dim p1Y As Variant
+  Dim p2X As Variant
+  Dim p2Y As Variant
+  Dim length1 As Variant
+  Dim length2 As Variant
+  Dim C As Variant
+  Dim impulse As Variant
+  Dim oldLimitPositionImpulse As Variant
+  Dim linearError As Variant = 0.0
+  
+  ' // var r1 = b2Mul(b1.m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  ' // var r2 = b2Mul(b2.m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  ' // b2Vec2 p1 = b1->m_position + r1
+  p1X = b1.m_position.x + r1X
+  p1Y = b1.m_position.y + r1Y
+  ' // b2Vec2 p2 = b2->m_position + r2
+  p2X = b2.m_position.x + r2X
+  p2Y = b2.m_position.y + r2Y
+  ' //  Get the pulley axes.
+  ' // me.m_u1 = p1 - s1
+  Me.m_u1.Set(p1X - s1X, p1Y - s1Y)
+  ' // me.m_u2 = p2 - s2
+  Me.m_u2.Set(p2X - s2X, p2Y - s2Y)
+  length1 = Me.m_u1.Length()
+  length2 = Me.m_u2.Length()
+  If (length1 > b2Settings.b2_linearSlop) Then 
+    
+    ' // me.m_u1 *= 1.0f / length1
+    Me.m_u1.Multiply(1.0 / length1)
+    
+  Else
+    
+    Me.m_u1.SetZero()
+  Endif
+  
+  If (length2 > b2Settings.b2_linearSlop) Then 
+    
+    ' // me.m_u2 *= 1.0f / length2
+    Me.m_u2.Multiply(1.0 / length2)
+    
+  Else
+    
+    Me.m_u2.SetZero()
+  Endif
+  
+  C = Me.m_constant - length1 - Me.m_ratio * length2
+  linearError = b2Math.b2Max(linearError, Math.abs(C))
+  C = b2Math.b2Clamp(C, - b2Settings.b2_maxLinearCorrection, b2Settings.b2_maxLinearCorrection)
+  impulse = - Me.m_pulleyMass * C
+  p1X = - impulse * Me.m_u1.x
+  p1Y = - impulse * Me.m_u1.y
+  p2X = - Me.m_ratio * impulse * Me.m_u2.x
+  p2Y = - Me.m_ratio * impulse * Me.m_u2.y
+  b1.m_position.x += b1.m_invMass * p1X
+  b1.m_position.y += b1.m_invMass * p1Y
+  b1.m_rotation += b1.m_invI * (r1X * p1Y - r1Y * p1X)
+  b2.m_position.x += b2.m_invMass * p2X
+  b2.m_position.y += b2.m_invMass * p2Y
+  b2.m_rotation += b2.m_invI * (r2X * p2Y - r2Y * p2X)
+  b1.m_R.Set(b1.m_rotation)
+  b2.m_R.Set(b2.m_rotation)
+  If (Me.m_limitState1 == b2Joint.e_atUpperLimit)
+    ' // b2Vec2 r1 = b2Mul(b1->m_R, me.m_localAnchor1)
+    tMat = b1.m_R
+    r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+    r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+    ' // b2Vec2 p1 = b1->m_position + r1
+    p1X = b1.m_position.x + r1X
+    p1Y = b1.m_position.y + r1Y
+    ' // me.m_u1 = p1 - s1
+    Me.m_u1.Set(p1X - s1X, p1Y - s1Y)
+    length1 = Me.m_u1.Length()
+    If (length1 > b2Settings.b2_linearSlop)
+      
+      ' // me.m_u1 *= 1.0 / length1
+      Me.m_u1.x *= 1.0 / length1
+      Me.m_u1.y *= 1.0 / length1
+      
+    Else
+      
+      Me.m_u1.SetZero()
+      
+      C = Me.m_maxLength1 - length1
+      linearError = b2Math.b2Max(linearError, - C)
+      C = b2Math.b2Clamp(C + b2Settings.b2_linearSlop, - b2Settings.b2_maxLinearCorrection, 0.0)
+      impulse = - Me.m_limitMass1 * C
+      oldLimitPositionImpulse = Me.m_limitPositionImpulse1
+      Me.m_limitPositionImpulse1 = b2Math.b2Max(0.0, Me.m_limitPositionImpulse1 + impulse)
+      impulse = Me.m_limitPositionImpulse1 - oldLimitPositionImpulse
+      ' // P1 = -impulse * me.m_u1
+      p1X = - impulse * Me.m_u1.x
+      p1Y = - impulse * Me.m_u1.y
+      b1.m_position.x += b1.m_invMass * p1X
+      b1.m_position.y += b1.m_invMass * p1Y
+      ' // b1.m_rotation += b1.m_invI * b2Cross(r1, P1)
+      b1.m_rotation += b1.m_invI * (r1X * p1Y - r1Y * p1X)
+      b1.m_R.Set(b1.m_rotation)
+    Endif
+    
+    If (Me.m_limitState2 = b2Joint.e_atUpperLimit) Then 
+      ' // b2Vec2 r2 = b2Mul(b2->m_R, me.m_localAnchor2)
+      tMat = b2.m_R
+      r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+      r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+      ' // b2Vec2 p2 = b2->m_position + r2
+      p2X = b2.m_position.x + r2X
+      p2Y = b2.m_position.y + r2Y
+      ' // me.m_u2 = p2 - s2
+      Me.m_u2.Set(p2X - s2X, p2Y - s2Y)
+      length2 = Me.m_u2.Length()
+      If (length2 > b2Settings.b2_linearSlop) Then 
+        
+        ' // me.m_u2 *= 1.0 / length2
+        Me.m_u2.x *= 1.0 / length2
+        Me.m_u2.y *= 1.0 / length2
+        
+      Else
+        
+        Me.m_u2.SetZero()
+      Endif
+      
+      C = Me.m_maxLength2 - length2
+      linearError = b2Math.b2Max(linearError, - C)
+      C = b2Math.b2Clamp(C + b2Settings.b2_linearSlop, - b2Settings.b2_maxLinearCorrection, 0.0)
+      impulse = - Me.m_limitMass2 * C
+      oldLimitPositionImpulse = Me.m_limitPositionImpulse2
+      Me.m_limitPositionImpulse2 = b2Math.b2Max(0.0, Me.m_limitPositionImpulse2 + impulse)
+      impulse = Me.m_limitPositionImpulse2 - oldLimitPositionImpulse
+      ' // P2 = -impulse * me.m_u2
+      p2X = - impulse * Me.m_u2.x
+      p2Y = - impulse * Me.m_u2.y
+      ' // b2.m_position += b2.m_invMass * P2
+      b2.m_position.x += b2.m_invMass * p2X
+      b2.m_position.y += b2.m_invMass * p2Y
+      ' // b2.m_rotation += b2.m_invI * b2Cross(r2, P2)
+      b2.m_rotation += b2.m_invI * (r2X * p2Y - r2Y * p2X)
+      b2.m_R.Set(b2.m_rotation)
+    Endif
+    
+    Return linearError < b2Settings.b2_linearSlop
+    
+End

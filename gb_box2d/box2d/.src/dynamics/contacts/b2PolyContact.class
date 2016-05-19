@@ -1,0 +1,156 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+you must Not   
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+Dim b2PolyContact As Variant = Class.create()
+  
+  Inherits , b2Contact
+  Inherits 
+  
+End
+
+Public Sub initialize(s1 As Variant, s2 As Variant)
+  
+  As Variant ''funcion
+  ' //  The constructor for b2Contact
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2ContactNode()
+  Me.m_node2 = New B2ContactNode()
+  ' // 
+  Me.m_flags = 0
+  If (!s1 || !s2)
+    Me.m_shape1 = Null
+    Me.m_shape2 = Null
+    Return
+    '' TODO: posible funcion (revisar)
+    
+    Me.m_shape1 = s1
+    Me.m_shape2 = s2
+    Me.m_manifoldCount = 0
+    Me.m_friction = Math.sqrt(Me.m_shape1.m_friction * Me.m_shape2.m_friction)
+    Me.m_restitution = b2Math.b2Max(Me.m_shape1.m_restitution, Me.m_shape2.m_restitution)
+    Me.m_prev = Null
+    Me.m_next = Null
+    Me.m_node1.contact = Null
+    Me.m_node1.prev = Null
+    Me.m_node1.next = Null
+    Me.m_node1.other = Null
+    Me.m_node2.contact = Null
+    Me.m_node2.prev = Null
+    Me.m_node2.next = Null
+    Me.m_node2.other = Null
+    ' // 
+    ' //  initialize instance variables for references
+    Me.m0 = New B2Manifold()
+    Me.m_manifold = [ New B2Manifold()]
+    ' // 
+    ' // super(shape1, shape2)
+    ' // b2Settings.b2Assert( me.m_shape1.m_type == b2Shape.e_polyShape)
+    ' // b2Settings.b2Assert( me.m_shape2.m_type == b2Shape.e_polyShape)
+    Me.m_manifold[0].pointCount = 0
+    ' // ~b2PolyContact() 
+    ' //  store temp manifold to reduce calls to new
+    Public 0: New B2Manifold(), As New 2 Manifold(),
+    
+End
+
+Public Sub Evaluate()
+  
+  Dim tMani As Variant = Me.m_manifold[0]
+  
+  ' //  replace memcpy
+  ' //  memcpy(& me.m0, & me.m_manifold, sizeof(b2Manifold))
+  ' // me.m0.points = new Array(tMani.pointCount)
+  Dim tPoints As Variant = Me.m0.points
+  
+  For (var k = 0; k < tMani.pointCount; k + + )
+    Dim tPoint As Variant = tPoints[k]
+  
+  Dim tPoint0 As Variant = tMani.points[k]
+  
+  ' // tPoint.separation = tPoint0.separation
+  tPoint.normalImpulse = tPoint0.normalImpulse
+  tPoint.tangentImpulse = tPoint0.tangentImpulse
+  ' // tPoint.position.SetV( tPoint0.position )
+  tPoint.id = tPoint0.id.Copy()
+  ' /* me.m0.points[k].id.features = new Features()
+  Me.m0.points[k].id.features.referenceFace = Me.m_manifold[0].points[k].id.features.referenceFace
+  Me.m0.points[k].id.features.incidentEdge = Me.m_manifold[0].points[k].id.features.incidentEdge
+  Me.m0.points[k].id.features.incidentVertex = Me.m_manifold[0].points[k].id.features.incidentVertex
+  Me.m0.points[k].id.features.flip = Me.m_manifold[0].points[k].id.features.flip
+  * /
+  ' // me.m0.normal.SetV( tMani.normal )
+    Me.m0.pointCount = tMani.pointCount
+  b2Collision.b2CollidePoly(tMani, Me.m_shape1, Me.m_shape2, False)
+  ' //  Match contact ids to facilitate warm starting.
+  If (tMani.pointCount > 0)
+    Dim match As Variant = [False, False]
+  
+  ' //  Match old contact ids to new contact ids and copy the
+  ' //  stored impulses to warm start the solver.
+  For (var i = 0; i < tMani.pointCount; + + i)
+    
+    Dim cp As Variant = tMani.points[i]
+  
+  cp.normalImpulse = 0.0
+  cp.tangentImpulse = 0.0
+  Dim idKey As Variant = cp.id.key
+  
+  For (var j = 0; j < Me.m0.pointCount; + + j)
+    
+    If ( Match [j] == True)
+      Continue
+      Dim cp0 As Variant = Me.m0.points[j]
+  
+  Dim id0 As Variant = cp0.id
+  
+  If (id0.key == idKey)
+    
+    Match [j] = True
+    cp.normalImpulse = cp0.normalImpulse
+    cp.tangentImpulse = cp0.tangentImpulse
+    Break
+    
+    Me.m_manifoldCount = 1
+  Else
+    Me.m_manifoldCount = 0
+    
+End
+
+Public Sub GetManifolds() As Variant ''funcion
+  
+  Return Me.m_manifold
+  '' TODO: posible funcion (revisar)
+  
+  m_manifold: [ New B2Manifold()])
+  
+End
+
+Public Sub Create(shape1 As Variant, shape2 As Variant, allocator As Variant) As Variant ''funcion
+  ' // void* mem = allocator->Allocate(sizeof(b2PolyContact))
+  
+  Return New B2PolyContact(shape1, shape2)
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub Destroy(contact As Variant, allocator As Variant)
+  
+  ' // ((b2PolyContact*)contact)->~b2PolyContact()
+  ' // allocator->Free(contact, sizeof(b2PolyContact))
+  

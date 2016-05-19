@@ -1,0 +1,157 @@
+' Gambas class file
+
+'gambas class'
+
+'"b2mat22"
+
+﻿' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Public col1 As New B2Vec2()
+Public col2 As New B2Vec2()
+
+Public Sub initialize(angle As Float, c1 As Variant, c2 As Variant)
+  
+  Dim c, s As Float
+
+  If IsNull(angle) Then angle = 0
+  
+  Me.col1 = New B2Vec2()
+  Me.col2 = New B2Vec2()
+  
+  If (Not (IsNull(c1))) And (Not (IsNull(c2))) Then
+    Me.col1.SetV(c1)
+    Me.col2.SetV(c2)
+  Else
+    c = Cos(angle)
+    s = Sin(angle)
+    Me.col1.x = c
+    Me.col2.x = - s
+    Me.col1.y = s
+    Me.col2.y = c
+  Endif
+  
+End
+
+Public Sub set(angle As Float)
+  
+  c = Cos(angle)
+  s = Sin(angle)
+  Me.col1.x = c
+  Me.col2.x = - s
+  Me.col1.y = s
+  Me.col2.y = c
+  
+End
+
+Public Sub SetW(c1 As Variant, c2 As Variant)
+  
+  Me.col1.SetV(c1)
+  Me.col2.SetV(c2)
+  
+End
+
+Public Function Copy() As B2mat22
+  
+  Return New B2mat22(0, Me.col1, Me.col2)
+  
+End
+
+Public Sub SetM(m As Variant)
+  
+  Me.col1.SetV(m.col1)
+  Me.col2.SetV(m.col2)
+  
+End
+
+Public Sub AddM(m As Variant)
+  
+  Me.col1.x += m.col1.x
+  Me.col1.y += m.col1.y
+  Me.col2.x += m.col2.x
+  Me.col2.y += m.col2.y
+  
+End
+
+Public Sub SetIdentity()
+  
+  Me.col1.x = 1.0
+  Me.col2.x = 0.0
+  Me.col1.y = 0.0
+  Me.col2.y = 1.0
+  
+End
+
+Public Sub SetZero()
+  
+  Me.col1.x = 0.0
+  Me.col2.x = 0.0
+  Me.col1.y = 0.0
+  Me.col2.y = 0.0
+  
+End
+
+Public Function Invert(out As Variant) As Variant
+  
+  Dim a, b, c, d As Float
+  Dim det As Float
+  
+  a = this.col1.x
+  b = this.col2.x
+  c = this.col1.y
+  d = this.col2.y
+  
+  / / var B = New B2Mat22();
+  det = a * d - b * c;
+  / / b2Settings.b2Assert(det! = 0.0);
+  det = 1.0 / det;
+  out.col1.x = det * d
+  out.col2.x = - det * b
+  out.col1.y = - det * c
+  out.col2.y = det * a
+  Return out
+  
+End
+
+' this.Solve A * x = b
+Public Sub solve(out As Variant, bX As Float, bY As Float) As Variant
+  
+  Dim a11, a12, a21, a22 As Float
+
+  / / float32 a11 = this.col1.x, a12 = this.col2.x, a21 = this.col1.y, a22 = this.col2.y;
+  a11 = Me.col1.x
+  a12 = Me.col2.x
+  a21 = Me.col1.y
+  a22 = Me.col2.y
+  / / float32 det = a11 * a22 - a12 * a21;
+  det = a11 * a22 - a12 * a21
+  / / b2Settings.b2Assert(det! = 0.0);
+  det = 1.0 / det
+  out.x = det * (a22 * bX - a12 * bY)
+  out.y = det * (a11 * bY - a21 * bX)
+  Return out
+  
+End
+
+Public Sub Abs()
+  
+  Me.col1.Abs()
+  Me.col2.Abs()
+  
+End

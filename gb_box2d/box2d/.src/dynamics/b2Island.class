@@ -1,0 +1,245 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+'you must not     
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' /* 
+
+' */
+
+Public m_allocator As Variant = Null
+
+Public m_bodies As Variant = Null
+Public m_contacts As Variant = Null
+Public m_joints As Variant = Null
+
+Public m_bodyCount As Variant = 0
+Public m_jointCount As Variant = 0
+Public m_contactCount As Variant = 0
+
+Public m_bodyCapacity As Variant = 0
+Public m_contactCapacity As Variant = 0
+Public m_jointCapacity As Variant = 0
+
+Public m_positionError As Variant = Null
+
+Public m_positionIterationCount As Variant = 0
+
+Public Sub _new(bodyCapacity As Variant, contactCapacity As Variant, jointCapacity As Variant, allocator As Variant)
+  
+  Dim i As Variant = 0
+  
+  Me.m_bodyCapacity = bodyCapacity
+  Me.m_contactCapacity = contactCapacity
+  Me.m_jointCapacity = jointCapacity
+  Me.m_bodyCount = 0
+  Me.m_contactCount = 0
+  Me.m_jointCount = 0
+  ' // me.m_bodies = (b2Body**)allocator->Allocate(bodyCapacity * sizeof(b2Body*))
+  Me.m_bodies = bodyCapacity
+  
+  For i = 0 To bodyCapacity - 1
+    Me.m_bodies[i] = Null
+  Next
+  ' // me.m_contacts = (b2Contact**)allocator->Allocate(contactCapacity	 * sizeof(b2Contact*))
+  Me.m_contacts = contactCapacity
+  For (i = 0 To contactCapacity - 1
+    Me.m_contacts[i] = Null
+  Next 
+  ' // me.m_joints = (b2Joint**)allocator->Allocate(jointCapacity * sizeof(b2Joint*))
+  Me.m_joints = jointCapacity
+  For (i = 0 To jointCapacity - 1
+    Me.m_joints[i] = Null
+  Next
+  Me.m_allocator = allocator
+  ' // ~b2Island()
+  
+End
+
+Public Sub Clear()
+  
+  Me.m_bodyCount = 0
+  Me.m_contactCount = 0
+  Me.m_jointCount = 0
+  
+End
+
+Public Sub Solve( Step As Variant, gravity As Variant)
+  
+  Dim i As Variant = 0
+  Dim j As Variant = 0
+  Dim b As Variant
+  Dim contactSolver As Variant
+  
+  Dim contactsOkay As Variant
+  Dim jointsOkay As Variant 
+  Dim jointOkay As Variant 
+  Dim contactsOkay As Variant
+  Dim jointsOkay As Variant
+  Dim jointOkay As Variant
+  
+  For i = 0 To Me.m_bodyCount - 1
+    b = Me.m_bodies[i]
+    If (b.m_invMass == 0.0) Then 
+      Continue
+    Endif
+    
+    b.m_linearVelocity.Add(b2Math.MulFV(step.dt, b2Math.AddVV(gravity, b2Math.MulFV(b.m_invMass, b.m_force))))
+    b.m_angularVelocity += step.dt * b.m_invI * b.m_torque
+    ' // b.m_linearVelocity *= b.m_linearDamping
+    b.m_linearVelocity.Multiply(b.m_linearDamping)
+    b.m_angularVelocity *= b.m_angularDamping
+    ' //  Store positions for conservative advancement.
+    b.m_position0.SetV(b.m_position)
+    b.m_rotation0 = b.m_rotation
+  Next
+  
+  contactSolver = New B2ContactSolver(Me.m_contacts, Me.m_contactCount, Me.m_allocator)
+  
+  ' //  Pre-solve
+  contactSolver.PreSolve()
+  
+  For (i = 0 To Me.m_jointCount - 1
+    Me.m_joints[i].PrepareVelocitySolver()
+  Next
+  
+  ' //  me.Solve velocity constraints.
+  For (i = 0 To step.iterations - 1
+    contactSolver.SolveVelocityConstraints()
+    For j = 0 To Me.m_jointCount - 1
+      
+      Me.m_joints[j].SolveVelocityConstraints( Step )
+    Next
+  Next
+  
+  ' //  Integrate positions.
+  For (i = 0 To Me.m_bodyCount - 1
+    b = Me.m_bodies[i]
+    If (b.m_invMass = 0.0) Then 
+      Continue
+    Endif
+    
+    ' // b.m_position.Add( b2Math.MulFV (step.dt, b.m_linearVelocity) )
+    b.m_position.x += step.dt * b.m_linearVelocity.x
+    b.m_position.y += step.dt * b.m_linearVelocity.y
+    b.m_rotation += step.dt * b.m_angularVelocity
+    b.m_R.Set(b.m_rotation)
+  Next
+  
+  For (i = 0 To Me.m_jointCount - 1
+    Me.m_joints[i].PreparePositionSolver()
+  Next
+  
+  ' //  me.Solve position constraints.
+  If (b2World.s_enablePositionCorrection)
+    For b2Island.m_positionIterationCount = 0 To step.iterations - 1
+      
+      contactsOkay = contactSolver.SolvePositionConstraints(b2Settings.b2_contactBaumgarte)
+      
+      jointsOkay = True
+      
+      For i = 0 To Me.m_jointCount - 1
+        jointOkay = Me.m_joints[i].SolvePositionConstraints()
+        jointsOkay = jointsOkay And jointOkay
+      Next
+      
+      If (contactsOkay And jointsOkay)
+        Break ç
+      Endif
+    Next
+  Endif
+  
+  ' //  Post-solve.
+  contactSolver.PostSolve()
+  ' //  Synchronize shapes and reset forces.
+  For (i = 0 To Me.m_bodyCount - 1
+    b = Me.m_bodies[i]
+    If (b.m_invMass = 0.0) Then 
+      Continue
+    Endif
+    
+    b.m_R.Set(b.m_rotation)
+    b.SynchronizeShapes()
+    b.m_force.Set(0.0, 0.0)
+    b.m_torque = 0.0
+  Next
+  
+End
+
+Public Sub UpdateSleep(dt As Variant)
+  
+  Dim i As Variant = 0
+  
+  Dim b As Variant
+  Dim minSleepTime As Variant = Number.MAX_VALUE
+  
+  Dim linTolSqr As Variant = b2Settings.b2_linearSleepTolerance * b2Settings.b2_linearSleepTolerance
+  
+  Dim angTolSqr As Variant = b2Settings.b2_angularSleepTolerance * b2Settings.b2_angularSleepTolerance
+  
+  For i = 0 To Me.m_bodyCount - 1
+    b = Me.m_bodies[i]
+    If (b.m_invMass = 0.0) Then 
+      Continue
+    Endif
+    
+    If ((b.m_flags And b2Body.e_allowSleepFlag) = 0) Then 
+      b.m_sleepTime = 0.0
+      minSleepTime = 0.0
+    Endif
+    
+    If ((b.m_flags And b2Body.e_allowSleepFlag) = 0 Or b.m_angularVelocity * b.m_angularVelocity > angTolSqr Or b2Math.b2Dot(b.m_linearVelocity, b.m_linearVelocity) > linTolSqr) Then 
+      
+      b.m_sleepTime = 0.0
+      minSleepTime = 0.0
+      
+    Else
+      
+      b.m_sleepTime += dt
+      minSleepTime = b2Math.b2Min(minSleepTime, b.m_sleepTime)
+    Endif
+    
+    If (minSleepTime >= b2Settings.b2_timeToSleep)them
+      For i = 0 To Me.m_bodyCount - 1
+        b = Me.m_bodies[i]
+        'comprobar
+        b.m_flags |= b2Body.e_sleepFlag
+      Next
+    Endif
+    
+End
+
+Public Sub AddBody(body As Variant)
+  
+  ' // b2Settings.b2Assert( me.m_bodyCount < me.m_bodyCapacity)
+  Me.m_bodies[Me.m_bodyCount + 1] = body
+  
+End
+
+Public Sub AddContact(contact As Variant)
+  
+  ' // b2Settings.b2Assert( me.m_contactCount < me.m_contactCapacity)
+  Me.m_contacts[Me.m_contactCount + 1] = contact
+  
+End
+
+Public Sub AddJoint(joint As Variant)
+  
+  ' // b2Settings.b2Assert( me.m_jointCount < me.m_jointCapacity)
+  Me.m_joints[Me.m_jointCount + + ] = joint
+  
+End

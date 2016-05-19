@@ -1,0 +1,838 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  Linear constraint (point-to-line)
+' //  d = p2 - p1 = x2 + r2 - x1 - r1
+' //  C = dot(ay1, d)
+' //  Cdot = dot(d, cross(w1, ay1)) + dot(ay1, v2 + cross(w2, r2) - v1 - cross(w1, r1))
+' //       = -dot(ay1, v1) - dot(cross(d + r1, ay1), w1) + dot(ay1, v2) + dot(cross(r2, ay1), v2)
+' //  J = [-ay1 -cross(d+r1,ay1) ay1 cross(r2,ay1)]
+' // 
+' //  Angular constraint
+' //  C = a2 - a1 + a_initial
+' //  Cdot = w2 - w1
+' //  J = [0 0 -1 0 0 1]
+' //  Motor/Limit linear constraint
+' //  C = dot(ax1, d)
+' //  Cdot = = -dot(ax1, v1) - dot(cross(d + r1, ax1), w1) + dot(ax1, v2) + dot(cross(r2, ax1), v2)
+' //  J = [-ax1 -cross(d+r1,ax1) ax1 cross(r2,ax1)]
+
+Inherits B2Joint
+
+Public m_localAnchor1 As Variant = New B2Vec2()
+Public m_localAnchor2 As Variant = New B2Vec2()
+Public m_localXAxis1 As Variant = New B2Vec2()
+Public m_localYAxis1 As Variant = New B2Vec2()
+Public m_initialAngle As Variant = Null
+
+Public m_linearJacobian As Variant = New B2Jacobian()
+Public m_linearMass As Variant = Null
+Public m_linearImpulse As Variant = Null
+
+Public m_angularMass As Variant = Null
+Public m_angularImpulse As Variant = Null
+
+Public m_motorJacobian As Variant = New B2Jacobian()
+Public m_motorMass As Variant = Null
+Public m_motorImpulse As Variant = Null
+Public m_limitImpulse As Variant = Null
+Public m_limitPositionImpulse As Variant = Null
+
+Public m_lowerTranslation As Variant = Null
+Public m_upperTranslation As Variant = Null
+Public m_maxMotorForce As Variant = Null
+Public m_motorSpeed As Variant = Null
+
+Public m_enableLimit As Variant = Null
+Public m_enableMotor As Variant = Null
+Public m_limitState As Variant = 0
+
+Public Sub GetAnchor1() As Variant ''funcio as variant ''funcion
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  ' // return b2Math.AddVV(b1.m_position, b2Math.b2MulMV(b1.m_R, me.m_localAnchor1))
+  
+  Dim tVec As Variant = New B2Vec2()
+  
+  tVec.SetV(Me.m_localAnchor1)
+  tVec.MulM(b1.m_R)
+  tVec.Add(b1.m_position)
+  Return tVec
+  
+End
+
+Public Sub GetAnchor2() As Variant ''funcio as variant ''funcion
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  ' // return b2Math.AddVV(b2.m_position, b2Math.b2MulMV(b2.m_R, me.m_localAnchor2))
+  '' TODO: posible funcion (revisar)
+  
+  Dim tVec As Variant = New B2Vec2()
+  
+  tVec.SetV(Me.m_localAnchor2)
+  tVec.MulM(b2.m_R)
+  tVec.Add(b2.m_position)
+  Return tVec
+  
+End
+
+Public Sub GetJointTranslation() As Variant ''funcion
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  Dim r1X As Variant
+  Dim r1Y As Variant
+  
+  Dim r2X As Variant 
+  Dim r2Y As Variant
+  Dim p1X As Variant
+  Dim p1Y As Variant
+  Dim p2X As Variant
+  Dim p2Y As Variant
+  Dim dX As Variant 
+  Dim dY As Variant
+  
+  Dim ax1X As Variant 
+  Dim ax1Y As Variant
+  Dim translation As Variant
+  ' // var r1 = b2Math.b2MulMV(b1.m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  ' // var r2 = b2Math.b2MulMV(b2.m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // var p1 = b2Math.AddVV(b1.m_position , r1)
+  p1X = b1.m_position.x + r1X
+  
+  p1Y = b1.m_position.y + r1Y
+  
+  ' // var p2 = b2Math.AddVV(b2.m_position , r2)
+  p2X = b2.m_position.x + r2X
+  
+  p2Y = b2.m_position.y + r2Y
+  
+  ' // var d = b2Math.SubtractVV(p2, p1)
+  dX = p2X - p1X
+  
+  dY = p2Y - p1Y
+  
+  ' // var ax1 = b2Math.b2MulMV(b1.m_R, me.m_localXAxis1)
+  tMat = b1.m_R
+  ax1X = tMat.col1.x * Me.m_localXAxis1.x + tMat.col2.x * Me.m_localXAxis1.y
+  
+  ax1Y = tMat.col1.y * Me.m_localXAxis1.x + tMat.col2.y * Me.m_localXAxis1.y
+  
+  ' // var translation = b2Math.b2Dot(ax1, d)
+  translation = ax1X * dX + ax1Y * dY
+  
+  Return translation
+  
+End
+
+Public Sub GetJointSpeed() As Variant ''funcion
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  Dim r1X As Variant
+  Dim r1Y As Variant 
+  Dim r2X As Variant 
+  Dim r2Y As Variant
+  Dim p1X As Variant
+  Dim p1Y As Variant
+  Dim p2X As Variant
+  Dim p2Y As Variant
+  Dim dX As Variant 
+  Dim dY As Variant
+  
+  Dim ax1X As Variant 
+  Dim ax1Y As Variant
+  Dim v1 As Variant
+  Dim v2 As Variant
+  Dim w1 As Variant
+  Dim w2 As Variant
+  Dim speed As Variant
+  
+  ' // var r1 = b2Math.b2MulMV(b1.m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  ' // var r2 = b2Math.b2MulMV(b2.m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // var p1 = b2Math.AddVV(b1.m_position , r1)
+  p1X = b1.m_position.x + r1X
+  
+  p1Y = b1.m_position.y + r1Y
+  
+  ' // var p2 = b2Math.AddVV(b2.m_position , r2)
+  p2X = b2.m_position.x + r2X
+  
+  p2Y = b2.m_position.y + r2Y
+  
+  ' // var d = b2Math.SubtractVV(p2, p1)
+  dX = p2X - p1X
+  
+  dY = p2Y - p1Y
+  
+  ' // var ax1 = b2Math.b2MulMV(b1.m_R, me.m_localXAxis1)
+  tMat = b1.m_R
+  ax1X = tMat.col1.x * Me.m_localXAxis1.x + tMat.col2.x * Me.m_localXAxis1.y
+  
+  ax1Y = tMat.col1.y * Me.m_localXAxis1.x + tMat.col2.y * Me.m_localXAxis1.y
+  
+  v1 = b1.m_linearVelocity
+  
+  v2 = b2.m_linearVelocity
+  
+  w1 = b1.m_angularVelocity
+  
+  w2 = b2.m_angularVelocity
+  
+  ' // var speed = b2Math.b2Dot(d, b2Math.b2CrossFV(w1, ax1)) + b2Math.b2Dot(ax1, b2Math.SubtractVV( b2Math.SubtractVV( b2Math.AddVV( v2 , b2Math.b2CrossFV(w2, r2)) , v1) , b2Math.b2CrossFV(w1, r1)))
+  ' // var b2D = (dX*(-w1 * ax1Y) + dY*(w1 * ax1X))
+  ' // var b2D2 = (ax1X * ((( v2.x + (-w2 * r2Y)) - v1.x) - (-w1 * r1Y)) + ax1Y * ((( v2.y + (w2 * r2X)) - v1.y) - (w1 * r1X)))
+  speed = (dX * (- w1 * ax1Y) + dY * (w1 * ax1X)) + (ax1X * (((v2.x + (- w2 * r2Y)) - v1.x) - (- w1 * r1Y)) + ax1Y * (((v2.y + (w2 * r2X)) - v1.y) - (w1 * r1X)))
+  
+  Return speed
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub GetMotorForce(invTimeStep As Variant) As Variant ''funcion
+  
+  Return invTimeStep * Me.m_motorImpulse
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub SetMotorSpeed(speed As Variant)
+  
+  Me.m_motorSpeed = speed
+  
+End
+
+Public Sub SetMotorForce(force As Variant)
+  
+  Me.m_maxMotorForce = force
+  
+End
+
+Public Sub GetReactionForce(invTimeStep As Variant) As Variant ''funcio as variant ''funcion
+  
+  Dim tImp As Variant = invTimeStep * Me.m_limitImpulse
+  
+  Dim tMat As Variant
+  
+  Dim ax1X As Variant 
+  Dim ax1Y As Variant
+  
+  Dim ay1X As Variant 
+  Dim ay1Y As Variant
+  
+  ' // var ax1 = b2Math.b2MulMV( me.m_body1.m_R, me.m_localXAxis1)
+  tMat = Me.m_body1.m_R
+  ax1X = tImp * (tMat.col1.x * Me.m_localXAxis1.x + tMat.col2.x * Me.m_localXAxis1.y)
+  
+  ax1Y = tImp * (tMat.col1.y * Me.m_localXAxis1.x + tMat.col2.y * Me.m_localXAxis1.y)
+  
+  ' // var ay1 = b2Math.b2MulMV( me.m_body1.m_R, me.m_localYAxis1)
+  ay1X = tImp * (tMat.col1.x * Me.m_localYAxis1.x + tMat.col2.x * Me.m_localYAxis1.y)
+  
+  ay1Y = tImp * (tMat.col1.y * Me.m_localYAxis1.x + tMat.col2.y * Me.m_localYAxis1.y)
+  
+  ' // return (invTimeStep * me.m_limitImpulse) * ax1 + (invTimeStep * me.m_linearImpulse) * ay1
+  '' TODO: posible funcion (revisar)
+  
+  Return New B2Vec2(ax1X + ay1X, ax1Y + ay1Y)
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub GetReactionTorque(invTimeStep As Variant) As Variant ''funcion
+  
+  Return invTimeStep * Me.m_angularImpulse
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(def As Variant)
+  ' // super(def)
+  
+  Dim tMat As Variant
+  Dim tX As Variant
+  Dim tY As Variant
+  
+  ' //  The constructor for b2Joint
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2JointNode()
+  Me.m_node2 = New B2JointNode()
+  ' // 
+  Me.m_type = def.type
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_body1 = def.body1
+  Me.m_body2 = def.body2
+  Me.m_collideConnected = def.collideConnected
+  Me.m_islandFlag = False
+  Me.m_userData = def.userData
+  ' // 
+  ' //  initialize instance variables for references
+  Me.m_localAnchor1 = New B2Vec2()
+  Me.m_localAnchor2 = New B2Vec2()
+  Me.m_localXAxis1 = New B2Vec2()
+  Me.m_localYAxis1 = New B2Vec2()
+  Me.m_linearJacobian = New B2Jacobian()
+  Me.m_motorJacobian = New B2Jacobian()
+  ' // 
+  ' // me.m_localAnchor1 = b2Math.b2MulTMV( me.m_body1.m_R, b2Math.SubtractVV(def.anchorPoint , me.m_body1.m_position))
+  tMat = Me.m_body1.m_R
+  tX = (def.anchorPoint.x - Me.m_body1.m_position.x)
+  tY = (def.anchorPoint.y - Me.m_body1.m_position.y)
+  Me.m_localAnchor1.Set((tX * tMat.col1.x + tY * tMat.col1.y), (tX * tMat.col2.x + tY * tMat.col2.y))
+  ' // me.m_localAnchor2 = b2Math.b2MulTMV( me.m_body2.m_R, b2Math.SubtractVV(def.anchorPoint , me.m_body2.m_position))
+  tMat = Me.m_body2.m_R
+  tX = (def.anchorPoint.x - Me.m_body2.m_position.x)
+  tY = (def.anchorPoint.y - Me.m_body2.m_position.y)
+  Me.m_localAnchor2.Set((tX * tMat.col1.x + tY * tMat.col1.y), (tX * tMat.col2.x + tY * tMat.col2.y))
+  ' // me.m_localXAxis1 = b2Math.b2MulTMV( me.m_body1.m_R, def.axis)
+  tMat = Me.m_body1.m_R
+  tX = def.axis.x
+  tY = def.axis.y
+  Me.m_localXAxis1.Set((tX * tMat.col1.x + tY * tMat.col1.y), (tX * tMat.col2.x + tY * tMat.col2.y))
+  ' // me.m_localYAxis1 = b2Math.b2CrossFV(1.0, me.m_localXAxis1)
+  Me.m_localYAxis1.x = - Me.m_localXAxis1.y
+  Me.m_localYAxis1.y = Me.m_localXAxis1.x
+  Me.m_initialAngle = Me.m_body2.m_rotation - Me.m_body1.m_rotation
+  Me.m_linearJacobian.SetZero()
+  Me.m_linearMass = 0.0
+  Me.m_linearImpulse = 0.0
+  Me.m_angularMass = 0.0
+  Me.m_angularImpulse = 0.0
+  Me.m_motorJacobian.SetZero()
+  Me.m_motorMass = 0.0
+  Me.m_motorImpulse = 0.0
+  Me.m_limitImpulse = 0.0
+  Me.m_limitPositionImpulse = 0.0
+  Me.m_lowerTranslation = def.lowerTranslation
+  Me.m_upperTranslation = def.upperTranslation
+  Me.m_maxMotorForce = def.motorForce
+  Me.m_motorSpeed = def.motorSpeed
+  Me.m_enableLimit = def.enableLimit
+  Me.m_enableMotor = def.enableMotor
+  
+End
+
+Public Sub PrepareVelocitySolver()
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  Dim r1X As Variant
+  Dim r1Y As Variant
+  Dim r2X As Variant
+  Dim r2Y As Variant
+  Dim invMass1 As Variant
+  
+  Dim invMass2 As Variant
+  Dim invI1 As Variant
+  Dim invI2 As Variant 
+  Dim ay1X As Variant 
+  Dim ay1Y As Variant
+  Dim eX As Variant
+  Dim eY As Variant
+  Dim ax1X As Variant
+  Dim ax1Y As Variant
+  Dim dX As Variant
+  Dim dY As Variant
+  Dim jointTranslation As Variant
+  Dim P1X As Variant
+  Dim P1Y As Variant
+  Dim P2X As Varian
+  Dim P2Y As Variant
+  Dim L1 As Variant
+  Dim L2 As Variant 
+  ' //  Compute the effective masses.
+  ' // b2Vec2 r1 = b2Mul(b1->m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  ' // b2Vec2 r2 = b2Mul(b2->m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // float32 invMass1 = b1->m_invMass, invMass2 = b2->m_invMass
+  invMass1 = b1.m_invMass
+  
+  invMass2 = b2.m_invMass
+  
+  ' // float32 invI1 = b1->m_invI, invI2 = b2->m_invI
+  invI1 = b1.m_invI
+  
+  invI2 = b2.m_invI
+  
+  ' //  Compute point to line constraint effective mass.
+  ' //  J = [-ay1 -cross(d+r1,ay1) ay1 cross(r2,ay1)]
+  ' // b2Vec2 ay1 = b2Mul(b1->m_R, me.m_localYAxis1)
+  tMat = b1.m_R
+  ay1X = tMat.col1.x * Me.m_localYAxis1.x + tMat.col2.x * Me.m_localYAxis1.y
+  
+  ay1Y = tMat.col1.y * Me.m_localYAxis1.x + tMat.col2.y * Me.m_localYAxis1.y
+  
+  ' // b2Vec2 e = b2->m_position + r2 - b1->m_position
+  eX = b2.m_position.x + r2X - b1.m_position.x
+  
+  eY = b2.m_position.y + r2Y - b1.m_position.y
+  
+  ' // me.m_linearJacobian.Set(-ay1, -b2Math.b2Cross(e, ay1), ay1, b2Math.b2Cross(r2, ay1))
+  Me.m_linearJacobian.linear1.x = - ay1X
+  Me.m_linearJacobian.linear1.y = - ay1Y
+  Me.m_linearJacobian.linear2.x = ay1X
+  Me.m_linearJacobian.linear2.y = ay1Y
+  Me.m_linearJacobian.angular1 = - (eX * ay1Y - eY * ay1X)
+  Me.m_linearJacobian.angular2 = r2X * ay1Y - r2Y * ay1X
+  Me.m_linearMass = invMass1 + invI1 * Me.m_linearJacobian.angular1 * Me.m_linearJacobian.angular1 +
+    invMass2 + invI2 * Me.m_linearJacobian.angular2 * Me.m_linearJacobian.angular2
+  ' // b2Settings.b2Assert( me.m_linearMass > Number.MIN_VALUE)
+  Me.m_linearMass = 1.0 / Me.m_linearMass
+  ' //  Compute angular constraint effective mass.
+  Me.m_angularMass = 1.0 / (invI1 + invI2)
+  ' //  Compute motor and limit terms.
+  If (Me.m_enableLimit Or Me.m_enableMotor) Then 
+    ' //  The motor and limit share a Jacobian and effective mass.
+    ' // b2Vec2 ax1 = b2Mul(b1->m_R, me.m_localXAxis1)
+    tMat = b1.m_R
+    ax1X = tMat.col1.x * Me.m_localXAxis1.x + tMat.col2.x * Me.m_localXAxis1.y
+    
+    ax1Y = tMat.col1.y * Me.m_localXAxis1.x + tMat.col2.y * Me.m_localXAxis1.y
+    
+    ' // me.m_motorJacobian.Set(-ax1, -b2Cross(e, ax1), ax1, b2Cross(r2, ax1))
+    Me.m_motorJacobian.linear1.x = - ax1X
+    Me.m_motorJacobian.linear1.y = - ax1Y
+    Me.m_motorJacobian.linear2.x = ax1X
+    Me.m_motorJacobian.linear2.y = ax1Y
+    Me.m_motorJacobian.angular1 = - (eX * ax1Y - eY * ax1X)
+    Me.m_motorJacobian.angular2 = r2X * ax1Y - r2Y * ax1X
+    Me.m_motorMass = invMass1 + invI1 * Me.m_motorJacobian.angular1 * Me.m_motorJacobian.angular1 +
+      invMass2 + invI2 * Me.m_motorJacobian.angular2 * Me.m_motorJacobian.angular2
+    ' // b2Settings.b2Assert( me.m_motorMass > Number.MIN_VALUE)
+    Me.m_motorMass = 1.0 / Me.m_motorMass
+    If (Me.m_enableLimit) Then
+      
+      ' // b2Vec2 d = e - r1
+      dX = eX - r1X
+      
+      dY = eY - r1Y
+      
+      ' // float32 jointTranslation = b2Dot(ax1, d)
+      jointTranslation = ax1X * dX + ax1Y * dY
+      
+      If (b2Math.b2Abs(Me.m_upperTranslation - Me.m_lowerTranslation) < 2.0 * b2Settings.b2_linearSlop) Then 
+        
+        Me.m_limitState = b2Joint.e_equalLimits
+        
+      Else If (jointTranslation <= Me.m_lowerTranslation) Then 
+        
+        If (Me.m_limitState! = b2Joint.e_atLowerLimit)
+          
+          Me.m_limitImpulse = 0.0
+        Endif
+        
+        Me.m_limitState = b2Joint.e_atLowerLimit
+        
+      Else If (jointTranslation >= Me.m_upperTranslation)
+        
+        If (Me.m_limitState! = b2Joint.e_atUpperLimit)
+          
+          Me.m_limitImpulse = 0.0
+        Endif
+        
+        Me.m_limitState = b2Joint.e_atUpperLimit
+        
+      Else
+        
+        Me.m_limitState = b2Joint.e_inactiveLimit
+        Me.m_limitImpulse = 0.0
+      Endif
+    Endif
+  Endif
+  
+  If (Me.m_enableMotor = False) Then 
+    Me.m_motorImpulse = 0.0
+  Endif
+  
+  If (Me.m_enableLimit = False) Then 
+    Me.m_limitImpulse = 0.0
+  Endif
+  
+  If (b2World.s_enableWarmStarting) Then 
+    ' // b2Vec2 P1 = me.m_linearImpulse * me.m_linearJacobian.linear1 + ( me.m_motorImpulse + me.m_limitImpulse) * me.m_motorJacobian.linear1
+    P1X = Me.m_linearImpulse * Me.m_linearJacobian.linear1.x + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.linear1.x
+    
+    P1Y = Me.m_linearImpulse * Me.m_linearJacobian.linear1.y + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.linear1.y
+    
+    ' // b2Vec2 P2 = me.m_linearImpulse * me.m_linearJacobian.linear2 + ( me.m_motorImpulse + me.m_limitImpulse) * me.m_motorJacobian.linear2
+    P2X = Me.m_linearImpulse * Me.m_linearJacobian.linear2.x + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.linear2.x
+    
+    P2Y = Me.m_linearImpulse * Me.m_linearJacobian.linear2.y + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.linear2.y
+    
+    ' // float32 L1 = me.m_linearImpulse * me.m_linearJacobian.angular1 - me.m_angularImpulse + ( me.m_motorImpulse + me.m_limitImpulse) * me.m_motorJacobian.angular1
+    L1 = Me.m_linearImpulse * Me.m_linearJacobian.angular1 - Me.m_angularImpulse + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.angular1
+    
+    ' // float32 L2 = me.m_linearImpulse * me.m_linearJacobian.angular2 + me.m_angularImpulse + ( me.m_motorImpulse + me.m_limitImpulse) * me.m_motorJacobian.angular2
+    L2 = Me.m_linearImpulse * Me.m_linearJacobian.angular2 + Me.m_angularImpulse + (Me.m_motorImpulse + Me.m_limitImpulse) * Me.m_motorJacobian.angular2
+    
+    ' // b1->m_linearVelocity += invMass1 * P1
+    b1.m_linearVelocity.x += invMass1 * P1X
+    b1.m_linearVelocity.y += invMass1 * P1Y
+    ' // b1->m_angularVelocity += invI1 * L1
+    b1.m_angularVelocity += invI1 * L1
+    ' // b2->m_linearVelocity += invMass2 * P2
+    b2.m_linearVelocity.x += invMass2 * P2X
+    b2.m_linearVelocity.y += invMass2 * P2Y
+    ' // b2->m_angularVelocity += invI2 * L2
+    b2.m_angularVelocity += invI2 * L2
+  Else
+    Me.m_linearImpulse = 0.0
+    Me.m_angularImpulse = 0.0
+    Me.m_limitImpulse = 0.0
+    Me.m_motorImpulse = 0.0
+  Endif
+  
+  Me.m_limitPositionImpulse = 0.0
+  
+End
+
+Public Sub SolveVelocityConstraints( Step As Variant)
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim invMass1 As Variant = b1.m_invMass
+  
+  Dim invMass2 As Variant = b2.m_invMass
+  
+  Dim invI1 As Variant = b1.m_invI
+  
+  Dim invI2 As Variant = b2.m_invI
+  
+  Dim oldLimitImpulse As Variant
+  ' //  Solve linear constraint.
+  Dim linearCdot As Variant = Me.m_linearJacobian.Compute(b1.m_linearVelocity, b1.m_angularVelocity, b2.m_linearVelocity, b2.m_angularVelocity)
+  
+  Dim linearImpulse As Variant = - Me.m_linearMass * linearCdot
+  
+  Dim angularCdot As Variant 
+  Dim angularImpulse As Variant
+  Dim motorCdot As Variant
+  Dim motorImpulse As Variant 
+  Dim oldMotorImpulse As Variant 
+  Dim limitCdot As Variant
+  Dim limitImpulse As Variant 
+  
+  Me.m_linearImpulse += linearImpulse
+  ' // b1->m_linearVelocity += (invMass1 * linearImpulse) * me.m_linearJacobian.linear1
+  b1.m_linearVelocity.x += (invMass1 * linearImpulse) * Me.m_linearJacobian.linear1.x
+  b1.m_linearVelocity.y += (invMass1 * linearImpulse) * Me.m_linearJacobian.linear1.y
+  ' // b1->m_angularVelocity += invI1 * linearImpulse * me.m_linearJacobian.angular1
+  b1.m_angularVelocity += invI1 * linearImpulse * Me.m_linearJacobian.angular1
+  ' // b2->m_linearVelocity += (invMass2 * linearImpulse) * me.m_linearJacobian.linear2
+  b2.m_linearVelocity.x += (invMass2 * linearImpulse) * Me.m_linearJacobian.linear2.x
+  b2.m_linearVelocity.y += (invMass2 * linearImpulse) * Me.m_linearJacobian.linear2.y
+  ' // b2.m_angularVelocity += invI2 * linearImpulse * me.m_linearJacobian.angular2
+  b2.m_angularVelocity += invI2 * linearImpulse * Me.m_linearJacobian.angular2
+  ' //  Solve angular constraint.
+  angularCdot = b2.m_angularVelocity - b1.m_angularVelocity
+  
+  angularImpulse = - Me.m_angularMass * angularCdot
+  
+  Me.m_angularImpulse += angularImpulse
+  b1.m_angularVelocity -= invI1 * angularImpulse
+  b2.m_angularVelocity += invI2 * angularImpulse
+  ' //  Solve linear motor constraint.
+  If (Me.m_enableMotor And Me.m_limitState <> b2Joint.e_equalLimits) Then 
+    motorCdot = Me.m_motorJacobian.Compute(b1.m_linearVelocity, b1.m_angularVelocity, b2.m_linearVelocity, b2.m_angularVelocity) - Me.m_motorSpeed
+    
+    motorImpulse = - Me.m_motorMass * motorCdot
+    
+    oldMotorImpulse = Me.m_motorImpulse
+    
+    Me.m_motorImpulse = b2Math.b2Clamp(Me.m_motorImpulse + motorImpulse, - step.dt * Me.m_maxMotorForce, step.dt * Me.m_maxMotorForce)
+    motorImpulse = Me.m_motorImpulse - oldMotorImpulse
+    ' // b1.m_linearVelocity += (invMass1 * motorImpulse) * me.m_motorJacobian.linear1
+    b1.m_linearVelocity.x += (invMass1 * motorImpulse) * Me.m_motorJacobian.linear1.x
+    b1.m_linearVelocity.y += (invMass1 * motorImpulse) * Me.m_motorJacobian.linear1.y
+    ' // b1.m_angularVelocity += invI1 * motorImpulse * me.m_motorJacobian.angular1
+    b1.m_angularVelocity += invI1 * motorImpulse * Me.m_motorJacobian.angular1
+    ' // b2->m_linearVelocity += (invMass2 * motorImpulse) * me.m_motorJacobian.linear2
+    b2.m_linearVelocity.x += (invMass2 * motorImpulse) * Me.m_motorJacobian.linear2.x
+    b2.m_linearVelocity.y += (invMass2 * motorImpulse) * Me.m_motorJacobian.linear2.y
+    ' // b2->m_angularVelocity += invI2 * motorImpulse * me.m_motorJacobian.angular2
+    b2.m_angularVelocity += invI2 * motorImpulse * Me.m_motorJacobian.angular2
+  Endif
+  
+  ' //  Solve linear limit constraint.
+  If (Me.m_enableLimit And Me.m_limitState <> b2Joint.e_inactiveLimit) Then
+    limitCdot = Me.m_motorJacobian.Compute(b1.m_linearVelocity, b1.m_angularVelocity, b2.m_linearVelocity, b2.m_angularVelocity)
+    limitImpulse = - Me.m_motorMass * limitCdot
+    
+    If (Me.m_limitState = b2Joint.e_equalLimits) Then 
+      
+      Me.m_limitImpulse += limitImpulse
+      
+    Else If (Me.m_limitState = b2Joint.e_atLowerLimit) Then 
+      
+      oldLimitImpulse = Me.m_limitImpulse
+      Me.m_limitImpulse = b2Math.b2Max(Me.m_limitImpulse + limitImpulse, 0.0)
+      limitImpulse = Me.m_limitImpulse - oldLimitImpulse
+      
+    Else If (Me.m_limitState = b2Joint.e_atUpperLimit) Then 
+      
+      oldLimitImpulse = Me.m_limitImpulse
+      Me.m_limitImpulse = b2Math.b2Min(Me.m_limitImpulse + limitImpulse, 0.0)
+      limitImpulse = Me.m_limitImpulse - oldLimitImpulse
+    Endif
+    
+    ' // b1->m_linearVelocity += (invMass1 * limitImpulse) * me.m_motorJacobian.linear1
+    b1.m_linearVelocity.x += (invMass1 * limitImpulse) * Me.m_motorJacobian.linear1.x
+    b1.m_linearVelocity.y += (invMass1 * limitImpulse) * Me.m_motorJacobian.linear1.y
+    ' // b1->m_angularVelocity += invI1 * limitImpulse * me.m_motorJacobian.angular1
+    b1.m_angularVelocity += invI1 * limitImpulse * Me.m_motorJacobian.angular1
+    ' // b2->m_linearVelocity += (invMass2 * limitImpulse) * me.m_motorJacobian.linear2
+    b2.m_linearVelocity.x += (invMass2 * limitImpulse) * Me.m_motorJacobian.linear2.x
+    b2.m_linearVelocity.y += (invMass2 * limitImpulse) * Me.m_motorJacobian.linear2.y
+    ' // b2->m_angularVelocity += invI2 * limitImpulse * me.m_motorJacobian.angular2
+    b2.m_angularVelocity += invI2 * limitImpulse * Me.m_motorJacobian.angular2
+  Endif
+  
+End
+
+Public Sub SolvePositionConstraints() As Variant ''funcion
+  
+  Dim limitC As Variant
+  Dim oldLimitImpulse As Variant
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim invMass1 As Variant = b1.m_invMass
+  
+  Dim invMass2 As Variant = b2.m_invMass
+  
+  Dim invI1 As Variant = b1.m_invI
+  
+  Dim invI2 As Variant = b2.m_invI
+  
+  Dim tMat As Variant
+  
+  Dim r1X As Variant 
+  Dim r1Y As Variant
+  Dim r2X As Variant
+  Dim r2Y As Variant 
+  Dim p1X As Variant 
+  Dim p1Y As Variant
+  Dim p2X As Variant
+  Dim p2Y As Variant 
+  Dim dX As Variant
+  Dim dY As Variant
+  Dim ay1X As Variant
+  Dim ay1Y As Variant
+  Dim linearC As Variant 
+  Dim linearImpulse As Variant
+  Dim positionError As Variant
+  Dim angularC As Variant
+  Dim angularImpulse As Variant
+  Dim angularError As Varian
+  Dim ax1X As Variant
+  Dim ax1Y As Variant 
+  Dim translation As Variant
+  Dim limitImpulse As Variant = 0.0
+  ' // b2Vec2 r1 = b2Mul(b1->m_R, me.m_localAnchor1)
+  tMat = b1.m_R
+  r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+  
+  r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+  
+  ' // b2Vec2 r2 = b2Mul(b2->m_R, me.m_localAnchor2)
+  tMat = b2.m_R
+  r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+  
+  r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+  
+  ' // b2Vec2 p1 = b1->m_position + r1
+  p1X = b1.m_position.x + r1X
+  
+  p1Y = b1.m_position.y + r1Y
+  
+  ' // b2Vec2 p2 = b2->m_position + r2
+  p2X = b2.m_position.x + r2X
+  
+  p2Y = b2.m_position.y + r2Y
+  
+  ' // b2Vec2 d = p2 - p1
+  dX = p2X - p1X
+  
+  dY = p2Y - p1Y
+  
+  ' // b2Vec2 ay1 = b2Mul(b1->m_R, me.m_localYAxis1)
+  tMat = b1.m_R
+  ay1X = tMat.col1.x * Me.m_localYAxis1.x + tMat.col2.x * Me.m_localYAxis1.y
+  
+  ay1Y = tMat.col1.y * Me.m_localYAxis1.x + tMat.col2.y * Me.m_localYAxis1.y
+  
+  ' //  Solve linear (point-to-line) constraint.
+  ' // float32 linearC = b2Dot(ay1, d)
+  linearC = ay1X * dX + ay1Y * dY
+  
+  ' //  Prevent overly large corrections.
+  linearC = b2Math.b2Clamp(linearC, - b2Settings.b2_maxLinearCorrection, b2Settings.b2_maxLinearCorrection)
+  linearImpulse = - Me.m_linearMass * linearC
+  
+  ' // b1->m_position += (invMass1 * linearImpulse) * me.m_linearJacobian.linear1
+  b1.m_position.x += (invMass1 * linearImpulse) * Me.m_linearJacobian.linear1.x
+  b1.m_position.y += (invMass1 * linearImpulse) * Me.m_linearJacobian.linear1.y
+  ' // b1->m_rotation += invI1 * linearImpulse * me.m_linearJacobian.angular1
+  b1.m_rotation += invI1 * linearImpulse * Me.m_linearJacobian.angular1
+  ' // b1->m_R.Set(b1->m_rotation)
+  ' // b2->m_position += (invMass2 * linearImpulse) * me.m_linearJacobian.linear2
+  b2.m_position.x += (invMass2 * linearImpulse) * Me.m_linearJacobian.linear2.x
+  b2.m_position.y += (invMass2 * linearImpulse) * Me.m_linearJacobian.linear2.y
+  b2.m_rotation += invI2 * linearImpulse * Me.m_linearJacobian.angular2
+  ' // b2->m_R.Set(b2->m_rotation)
+  positionError = b2Math.b2Abs(linearC)
+  
+  ' //  Solve angular constraint.
+  angularC = b2.m_rotation - b1.m_rotation - Me.m_initialAngle
+  
+  ' //  Prevent overly large corrections.
+  angularC = b2Math.b2Clamp(angularC, - b2Settings.b2_maxAngularCorrection, b2Settings.b2_maxAngularCorrection)
+  angularImpulse = - Me.m_angularMass * angularC
+  
+  b1.m_rotation -= b1.m_invI * angularImpulse
+  b1.m_R.Set(b1.m_rotation)
+  b2.m_rotation += b2.m_invI * angularImpulse
+  b2.m_R.Set(b2.m_rotation)
+  angularError = b2Math.b2Abs(angularC)
+  
+  ' //  Solve linear limit constraint.
+  If (Me.m_enableLimit And Me.m_limitState <> b2Joint.e_inactiveLimit)
+    ' // b2Vec2 r1 = b2Mul(b1->m_R, me.m_localAnchor1)
+    tMat = b1.m_R
+    r1X = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+    r1Y = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+    ' // b2Vec2 r2 = b2Mul(b2->m_R, me.m_localAnchor2)
+    tMat = b2.m_R
+    r2X = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+    r2Y = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+    ' // b2Vec2 p1 = b1->m_position + r1
+    p1X = b1.m_position.x + r1X
+    p1Y = b1.m_position.y + r1Y
+    ' // b2Vec2 p2 = b2->m_position + r2
+    p2X = b2.m_position.x + r2X
+    p2Y = b2.m_position.y + r2Y
+    ' // b2Vec2 d = p2 - p1
+    dX = p2X - p1X
+    dY = p2Y - p1Y
+    ' // b2Vec2 ax1 = b2Mul(b1->m_R, me.m_localXAxis1)
+    tMat = b1.m_R
+    ax1X = tMat.col1.x * Me.m_localXAxis1.x + tMat.col2.x * Me.m_localXAxis1.y
+    
+    ax1Y = tMat.col1.y * Me.m_localXAxis1.x + tMat.col2.y * Me.m_localXAxis1.y
+    
+    ' // float32 translation = b2Dot(ax1, d)
+    translation = (ax1X * dX + ax1Y * dY)
+    
+    limitImpulse = 0.0
+    
+    If (Me.m_limitState = b2Joint.e_equalLimits) Then 
+      
+      ' //  Prevent large angular corrections
+      limitC = b2Math.b2Clamp(translation, - b2Settings.b2_maxLinearCorrection, b2Settings.b2_maxLinearCorrection)
+      limitImpulse = - Me.m_motorMass * limitC
+      positionError = b2Math.b2Max(positionError, b2Math.b2Abs(angularC))
+      
+    Else If (Me.m_limitState = b2Joint.e_atLowerLimit) Then 
+      
+      limitC = translation - Me.m_lowerTranslation
+      positionError = b2Math.b2Max(positionError, - limitC)
+      ' //  Prevent large linear corrections and allow some slop.
+      limitC = b2Math.b2Clamp(limitC + b2Settings.b2_linearSlop, - b2Settings.b2_maxLinearCorrection, 0.0)
+      limitImpulse = - Me.m_motorMass * limitC
+      oldLimitImpulse = Me.m_limitPositionImpulse
+      Me.m_limitPositionImpulse = b2Math.b2Max(Me.m_limitPositionImpulse + limitImpulse, 0.0)
+      limitImpulse = Me.m_limitPositionImpulse - oldLimitImpulse
+      
+    Else If (Me.m_limitState = b2Joint.e_atUpperLimit) Then 
+      
+      limitC = translation - Me.m_upperTranslation
+      positionError = b2Math.b2Max(positionError, limitC)
+      ' //  Prevent large linear corrections and allow some slop.
+      limitC = b2Math.b2Clamp(limitC - b2Settings.b2_linearSlop, 0.0, b2Settings.b2_maxLinearCorrection)
+      limitImpulse = - Me.m_motorMass * limitC
+      oldLimitImpulse = Me.m_limitPositionImpulse
+      Me.m_limitPositionImpulse = b2Math.b2Min(Me.m_limitPositionImpulse + limitImpulse, 0.0)
+      limitImpulse = Me.m_limitPositionImpulse - oldLimitImpulse
+    Endif
+    
+    ' // b1->m_position += (invMass1 * limitImpulse) * me.m_motorJacobian.linear1
+    b1.m_position.x += (invMass1 * limitImpulse) * Me.m_motorJacobian.linear1.x
+    b1.m_position.y += (invMass1 * limitImpulse) * Me.m_motorJacobian.linear1.y
+    ' // b1->m_rotation += invI1 * limitImpulse * me.m_motorJacobian.angular1
+    b1.m_rotation += invI1 * limitImpulse * Me.m_motorJacobian.angular1
+    b1.m_R.Set(b1.m_rotation)
+    ' // b2->m_position += (invMass2 * limitImpulse) * me.m_motorJacobian.linear2
+    b2.m_position.x += (invMass2 * limitImpulse) * Me.m_motorJacobian.linear2.x
+    b2.m_position.y += (invMass2 * limitImpulse) * Me.m_motorJacobian.linear2.y
+    ' // b2->m_rotation += invI2 * limitImpulse * me.m_motorJacobian.angular2
+    b2.m_rotation += invI2 * limitImpulse * Me.m_motorJacobian.angular2
+    b2.m_R.Set(b2.m_rotation)
+  Endif
+  
+  Return positionError <= b2Settings.b2_linearSlop And angularError <= b2Settings.b2_angularSlop
+  
+End

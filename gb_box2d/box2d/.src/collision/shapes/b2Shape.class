@@ -1,0 +1,371 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+'you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  Shapes are created automatically when a body is created.
+' //  Client code does not normally interact with shapes.
+
+Public m_next As Variant = Null
+
+Public m_R As New 2 Mat22()
+Public m_position As New B2Vec2()
+
+Public m_type As Integer = 0
+Public m_userData As Variant = Null
+Public m_body As Variant = Null
+Public m_friction As Variant = Null
+Public m_restitution As Variant = Null
+Public m_maxRadius As Variant = Null
+Public m_proxyId As Integer = 0
+Public m_categoryBits As Integer = 0
+Public m_maskBits As Integer = 0
+Public m_groupIndex As Integer = 0
+
+Public e_unknownShape As Integer = -1
+Public e_circleShape As Integer = 0
+Public e_boxShape As Integer = 1
+Public e_polyShape As Integer = 2
+Public e_meshShape As Integer = 3
+Public e_shapeTypeCount As Integer = 4
+
+Public Sub TestPoint(p As Variant) As Variant
+  
+  Return False 
+  
+End
+
+Public Sub GetUserData() As Variant
+  
+  Return Me.m_userData
+  
+End
+
+Public Sub GetType() As Variant 
+  
+  Return Me.m_type
+  
+End
+
+' //  Get the parent body of this shape.
+Public Sub GetBody() As Variant ''funcion
+  
+  Return Me.m_body
+  
+End
+
+Public Sub GetPosition() As Variant ''funcion
+  
+  Return Me.m_position
+  
+End
+
+Public Sub GetRotationMatrix() As Variant 
+  
+  Return Me.m_R
+  
+End
+
+' //  Remove and then add proxy from the broad-phase.
+' //  This is used to refresh the collision filters.
+Public Sub ResetProxy(broadPhase As Variant)
+  
+End
+
+' //  Get the next shape in the parent body's shape list.
+
+Public Sub GetNext() As Variant ''funcion
+  
+  Return Me.m_next
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(def As Variant, body As Variant)
+  
+  ' //  initialize instance variables for references
+  Me.m_R = New B2Mat22()
+  Me.m_position = New B2Vec2()
+  ' // 
+  Me.m_userData = def.userData
+  Me.m_friction = def.friction
+  Me.m_restitution = def.restitution
+  Me.m_body = body
+  Me.m_proxyId = b2Pair.b2_nullProxy
+  Me.m_maxRadius = 0.0
+  Me.m_categoryBits = def.categoryBits
+  Me.m_maskBits = def.maskBits
+  Me.m_groupIndex = def.groupIndex
+  
+End
+' //  Internal use only. Do not call.
+' // b2Shape::~b2Shape()
+' // 
+' // 	 me.m_body->m_world->m_broadPhase-> me.DestroyProxy( me.m_proxyId)
+' // 
+
+Public Sub DestroyProxy()
+  
+  If (Me.m_proxyId! = b2Pair.b2_nullProxy) Then 
+    Me.m_body.m_world.m_broadPhase.DestroyProxy(Me.m_proxyId)
+    Me.m_proxyId = b2Pair.b2_nullProxy
+  Endif
+  
+End
+
+' //  Internal use only. Do not call.
+Public Sub Synchronize(position1 As Variant, R1 As Variant, position2 As Variant, R2 As Variant)
+  
+End
+
+Public Sub QuickSync(position As Variant, R As Variant)
+  
+End
+
+Public Sub Support(dX As Variant, dY As Variant, out As Variant)
+  
+End
+
+Public Sub GetMaxRadius() As Variant ''funcion
+  
+  Return Me.m_maxRadius
+  
+End
+
+Public Sub Create(def As Variant, body As Variant, center As Variant) As Variant 
+  
+  Select Case def.type
+    Case b2Shape.e_circleShape
+      ' // void* mem = body->m_world->m_blockAllocator.Allocate(sizeof(b2CircleShape))
+      Return New B2CircleShape(def, body, center)
+    Case b2Shape.e_boxShape
+    Case b2Shape.e_polyShape
+      ' // void* mem = body->m_world->m_blockAllocator.Allocate(sizeof(b2PolyShape))
+      Return New B2PolyShape(def, body, center)
+  End Select
+  
+  ' // b2Settings.b2Assert(false)
+  Return Null
+  
+End
+
+Public Sub Destroy(shape As Variant)
+  ' //  FROM DESTRUCTOR
+  
+  If (shape.m_proxyId! = b2Pair.b2_nullProxy) Then 
+    shape.m_body.m_world.m_broadPhase.DestroyProxy(shape.m_proxyId)
+  Endif
+  
+End
+
+Public Sub PolyMass(massData As Variant, vs As Variant, count As Variant, rho As Variant)
+  
+  ' // b2Settings.b2Assert(count >= 3)
+  ' // var center = new b2Vec2(0.0, 0.0)
+  Dim center As New B2Vec2()
+  Dim area As Variant = 0.0
+  
+  Dim I As Variant = 0.0
+  
+  ' //  pRef is the reference point for forming triangles.
+  ' //  It's location doesn't change the result (except for rounding error).
+  Dim pRef As New B2Vec2(0.0, 0.0)
+  
+  Dim inv3 As Variant = 1.0 / 3.0
+  
+  Dim i As Integer
+  
+  Dim p1 As Variant
+  Dim p2 As Variant 
+  Dim p3 As Variant 
+  Dim e1 As Variant
+  Dim e2 As Variant
+  Dim D As Variant
+  Dim triangleArea As Variant
+  Dim tVec As Variant
+  
+  Dim px As Variant
+  Dim py As Variant
+  Dim ex1 As Varian
+  Dim ey1 As Varian
+  Dim ex2 As Varian
+  Dim ey2 As Varian
+  Dim intx2 As Variant
+  Dim inty2 As Variant
+  
+  center.SetZero()
+  
+  For i = 0 To count
+    ' //  Triangle vertices.
+    p1 = pRef
+    
+    p2 = vs[i]
+    
+    p3 = If(i + 1 < count, vs[i + 1], vs[0])
+    
+    e1 = b2Math.SubtractVV(p2, p1)
+    
+    e2 = b2Math.SubtractVV(p3, p1)
+    
+    D = b2Math.b2CrossVV(e1, e2)
+    
+    triangleArea = 0.5 * D
+    
+    area += triangleArea
+    ' //  Area weighted centroid
+    ' //  center += triangleArea * inv3 * (p1 + p2 + p3)
+    tVec = New B2Vec2()
+    
+    tVec.SetV(p1)
+    tVec.Add(p2)
+    tVec.Add(p3)
+    tVec.Multiply(inv3 * triangleArea)
+    center.Add(tVec)
+    px = p1.x
+    
+    py = p1.y
+    
+    ex1 = e1.x
+    
+    ey1 = e1.y
+    
+    ex2 = e2.x
+    
+    ey2 = e2.y
+    
+    intx2 = inv3 * (0.25 * (ex1 * ex1 + ex2 * ex1 + ex2 * ex2) + (px * ex1 + px * ex2)) + 0.5 * px * px
+    
+    inty2 = inv3 * (0.25 * (ey1 * ey1 + ey2 * ey1 + ey2 * ey2) + (py * ey1 + py * ey2)) + 0.5 * py * py
+    
+    I += D * (intx2 + inty2)
+  Next
+  
+  ' //  Total mass
+  massData.mass = rho * area
+  ' //  Center of mass
+  ' // b2Settings.b2Assert(area > Number.MIN_VALUE)
+  center.Multiply(1.0 / area)
+  massData.center = center
+  ' //  Inertia tensor relative to the center.
+  I = rho * (I - area * b2Math.b2Dot(center, center))
+  massData.I = I
+  
+End
+
+Public Sub PolyCentroid(vs As Variant, count As Variant, out As Variant) As Variant ''funcio as variant ''funcion
+  ' // b2Settings.b2Assert(count >= 3)
+  ' // b2Vec2 c;c.Set(0.0f, 0.0f)
+  
+  Dim cX As Float = 0.0
+  
+  Dim cY As Float = 0.0
+  
+  ' // float32 area = 0.0f
+  Dim area As Float = 0.0
+  
+  ' //  pRef is the reference point for forming triangles.
+  ' //  It's location doesn't change the result (except for rounding error).
+  ' // b2Vec2 pRef(0.0f, 0.0f)
+  Dim pRefX As Float = 0.0
+  
+  Dim pRefY As Float = 0.0
+  
+  ' // const float32 inv3 = 1.0f / 3.0f
+  Dim inv3 As Variant = 1.0 / 3.0
+  
+  Dim p1X As Variant
+  
+  Dim p1Y As Variant 
+  
+  ' // b2Vec2 p2 = vs[i]
+  Dim p2X As Variant 
+  
+  Dim p2Y As Variant 
+  
+  ' // b2Vec2 p3 = i + 1 < count ? vs[i+1] : vs[0]
+  Dim p3X As Variant
+  
+  Dim p3Y As Variant 
+  
+  ' // b2Vec2 e1 = p2 - p1
+  Dim e1X As Variant
+  
+  Dim e1Y As Variant 
+  
+  ' // b2Vec2 e2 = p3 - p1
+  Dim e2X As Variant 
+  
+  Dim e2Y As Variant 
+  
+  ' // float32 D = b2Cross(e1, e2)
+  Dim D As Variant 
+  
+  ' // float32 triangleArea = 0.5f * D
+  Dim triangleArea As Variant
+  
+  Dim i As Variant
+  
+  For i = 0 To count
+    ' //  Triangle vertices.
+    ' // b2Vec2 p1 = pRef
+    p1X = pRefX
+    
+    p1Y = pRefY
+    
+    ' // b2Vec2 p2 = vs[i]
+    p2X = vs[i].x
+    
+    p2Y = vs[i].y
+    
+    ' // b2Vec2 p3 = i + 1 < count ? vs[i+1] : vs[0]
+    p3X = If(i + 1 < count, vs[i + 1].x, vs[0].x)
+    
+    p3Y = If(i + 1 < count, vs[i + 1].y, vs[0].y)
+    
+    ' // b2Vec2 e1 = p2 - p1
+    e1X = p2X - p1X
+    
+    e1Y = p2Y - p1Y
+    
+    ' // b2Vec2 e2 = p3 - p1
+    e2X = p3X - p1X
+    
+    e2Y = p3Y - p1Y
+    
+    ' // float32 D = b2Cross(e1, e2)
+    D = (e1X * e2Y - e1Y * e2X)
+    
+    ' // float32 triangleArea = 0.5f * D
+    triangleArea = 0.5 * D
+    
+    area += triangleArea
+    ' //  Area weighted centroid
+    ' // c += triangleArea * inv3 * (p1 + p2 + p3)
+    cX += triangleArea * inv3 * (p1X + p2X + p3X)
+    cY += triangleArea * inv3 * (p1Y + p2Y + p3Y)
+  Next
+  
+  ' //  Centroid
+  ' // b2Settings.b2Assert(area > Number.MIN_VALUE)
+  cX *= 1.0 / area
+  cY *= 1.0 / area
+  
+  out.Set(cX, cY)
+  
+End

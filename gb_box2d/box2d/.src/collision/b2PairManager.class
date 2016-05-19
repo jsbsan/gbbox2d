@@ -1,0 +1,389 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not    
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  The pair manager is used by the broad-phase to quickly add/remove/find pairs
+' //  of overlapping proxies. It is based closely on code provided by Pierre Terdiman.
+' //  http:
+
+Public Sub _new()
+  
+  Dim i As Variant = 0
+  
+  ' // b2Settings.b2Assert(b2Math.b2IsPowerOfTwo(b2Pair.b2_tableCapacity) == true)
+  ' // b2Settings.b2Assert(b2Pair.b2_tableCapacity >= b2Settings.b2_maxPairs)
+  Me.m_hashTable = New Variant[] 'Array(b2Pair.b2_tableCapacity)
+  
+  For i = 0 To b2Pair.b2_tableCapacity
+    Me.m_hashTable.add(b2Pair.b2_nullPair)
+  Next
+  
+  Me.m_pairs = New Variant[] 'Array(b2Settings.b2_maxPairs)
+  
+  For i = 0 To b2Settings.b2_maxPairs
+    Me.m_pairs.add( New B2Pair())
+  Next
+  
+  Me.m_pairBuffer = New Variant[] 'Array(b2Settings.b2_maxPairs)
+  
+  For i = 0 To b2Settings.b2_maxPairs
+    Me.m_pairBuffer.add( New B2BufferedPair())
+  Next
+  
+  For i = 0 To b2Settings.b2_maxPairs
+    Me.m_pairs[i].proxyId1 = b2Pair.b2_nullProxy
+    Me.m_pairs[i].proxyId2 = b2Pair.b2_nullProxy
+    Me.m_pairs[i].userData = Null
+    Me.m_pairs[i].status = 0
+    Me.m_pairs[i].nextt = (i + 1)
+  Next
+  
+  Me.m_pairs[b2Settings.b2_maxPairs - 1].nextt = b2Pair.b2_nullPair
+  Me.m_pairCount = 0
+  
+End
+
+Public Sub _new(broadPhase As Variant, callback As Variant)
+  
+  Me.m_broadPhase = broadPhase
+  Me.m_callback = callback
+  
+End
+
+'	As proxies are created and moved, many pairs are created and destroyed. Even worse, the same'
+'pair may be added and removed multiple times in a single time step of the physics engine. To reduce
+'traffic in the pair manager, we try to avoid destroying pairs in the pair manager until the
+'end of the physics step. This is done by buffering all the me.RemovePair requests. me.AddPair
+'requests are processed immediately because we need the hash table entry for quick lookup.
+'All user user callbacks are delayed until the buffered pairs are confirmed in me.Commit.
+'This is very important because the user callbacks may be very expensive and client logic
+'may be harmed if pairs are added and removed within the same time step.
+'Buffer a pair for addition.
+'We may add a pair that is not in the pair manager or pair buffer.
+'We may add a pair that is already in the pair manager and pair buffer.
+'If the added pair is not a new pair, then it must be in the pair buffer (because me.RemovePair was called).
+' 	*/
+
+Public Sub AddBufferedPair(proxyId1 As Variant, proxyId2 As Variant)
+  
+  ' // b2Settings.b2Assert(id1 != b2_nullProxy && id2 != b2_nullProxy)
+  ' // b2Settings.b2Assert( me.m_pairBufferCount < b2_maxPairs)
+  Dim pair As Variant = Me.AddPair(proxyId1, proxyId2)
+  
+  ' //  If this pair is not in the pair buffer ...
+  If (pair.IsBuffered() = False) Then 
+    ' //  This must be a newly added pair.
+    ' // b2Settings.b2Assert(pair.IsFinal() == false)
+    ' //  Add it to the pair buffer.
+    pair.SetBuffered()
+    Me.m_pairBuffer[Me.m_pairBufferCount].proxyId1 = pair.proxyId1
+    Me.m_pairBuffer[Me.m_pairBufferCount].proxyId2 = pair.proxyId2
+    Me.m_pairBufferCount += 1
+    ' // b2Settings.b2Assert( me.m_pairBufferCount <= me.m_pairCount)
+  Endif
+  ' //  Confirm this pair for the subsequent call to me.Commit.
+  pair.ClearRemoved()
+  If (b2BroadPhase.s_validate) Then 
+    Me.ValidateBuffer()
+  Endif
+  
+  ' //  Buffer a pair for removal.
+End
+
+Public Sub RemoveBufferedPair(proxyId1 As Variant, proxyId2 As Variant) As Variant ''funcion
+  ' // b2Settings.b2Assert(id1 != b2_nullProxy && id2 != b2_nullProxy)
+  ' // b2Settings.b2Assert( me.m_pairBufferCount < b2_maxPairs)
+  
+  Dim pair As Variant = Me.Find(proxyId1, proxyId2)
+  
+  If (pair = Null) Then 
+    ' //  The pair never existed. This is legal (due to collision filtering).
+    Return
+  Endif
+  
+  ' //  If this pair is not in the pair buffer ...
+  If (pair.IsBuffered() = False) Then 
+    ' //  This must be an old pair.
+    ' // b2Settings.b2Assert(pair.IsFinal() == true)
+    pair.SetBuffered()
+    Me.m_pairBuffer[Me.m_pairBufferCount].proxyId1 = pair.proxyId1
+    Me.m_pairBuffer[Me.m_pairBufferCount].proxyId2 = pair.proxyId2
+    Me.m_pairBufferCount += 1
+    ' // b2Settings.b2Assert( me.m_pairBufferCount <= me.m_pairCount)
+  Endif
+  
+  pair.SetRemoved()
+  If (b2BroadPhase.s_validate) Then Me.ValidateBuffer()
+  
+End
+
+Public Sub Commit() As Variant 
+  
+  Dim i As Variant = 0
+  
+  Dim removeCount As Variant = 0
+  
+  Dim proxies As Variant = Me.m_broadPhase.m_proxyPool
+  
+  Dim pair As Variant
+  
+  Dim proxy1 As Variant
+  Dim proxy2 As Variant
+  
+  For i = 0 To Me.m_pairBufferCount
+    pair = Me.Find(Me.m_pairBuffer[i].proxyId1, Me.m_pairBuffer[i].proxyId2)
+    
+    ' // b2Settings.b2Assert(pair.IsBuffered())
+    pair.ClearBuffered()
+    ' // b2Settings.b2Assert(pair.proxyId1 < b2Settings.b2_maxProxies && pair.proxyId2 < b2Settings.b2_maxProxies)
+    proxy1 = proxies[pair.proxyId1]
+    
+    proxy2 = proxies[pair.proxyId2]
+    
+    ' // b2Settings.b2Assert(proxy1.IsValid())
+    ' // b2Settings.b2Assert(proxy2.IsValid())
+    If (pair.IsRemoved()) Then 
+      
+      ' //  It is possible a pair was added then removed before a commit. Therefore
+      ' //  we should be careful not to tell the user the pair was removed when the
+      ' //  the user didn't receive a matching add.
+      If (pair.IsFinal() = True) Then 
+        Me.m_callback.PairRemoved(proxy1.userData, proxy2.userData, pair.userData)
+      Endif
+      
+      ' //  Store the ids so we can actually remove the pair below.
+      Me.m_pairBuffer[removeCount].proxyId1 = pair.proxyId1
+      Me.m_pairBuffer[removeCount].proxyId2 = pair.proxyId2
+      removeCount += 1
+      
+    Else
+      
+      ' // b2Settings.b2Assert( me.m_broadPhase.TestOverlap(proxy1, proxy2) == true)
+      If (pair.IsFinal() = False) Then 
+        
+        pair.userData = Me.m_callback.PairAdded(proxy1.userData, proxy2.userData)
+        pair.SetFinal()
+      Endif
+    Endif
+  Next
+  
+  For i = 0 To removeCount - 1
+    Me.RemovePair(Me.m_pairBuffer[i].proxyId1, Me.m_pairBuffer[i].proxyId2)
+  Next
+  
+  Me.m_pairBufferCount = 0
+  
+  If (b2BroadPhase.s_validate) Then Me.ValidateTable()
+  
+End 
+' // private:
+' //  Add a pair and return the new pair. If the pair already exists, '' TODO: posible funcion (revisar)
+
+' //  no new pair is created and the old one is returned. '' TODO: posible funcion (revisar)
+
+Public Sub AddPair(proxyId1 As Variant, proxyId2 As Variant) As Variant ''funcio as variant ''funcio as variant ''funcion
+  
+  Dim temp As Variant = proxyId1
+  Dim hash As Variant 
+  Dim pair As Variant
+  Dim pIndex As Variant
+  
+  If (proxyId1 > proxyId2) Then 
+    proxyId1 = proxyId2
+    proxyId2 = Temp
+    ' // b2Math.b2Swap(p1, p2)
+    hash = b2PairManager.Hash(proxyId1, proxyId2) & b2Pair.b2_tableMask
+    
+    ' // var pairIndex = me.FindHash(proxyId1, proxyId2, hash)
+    pair = pair = Me.FindHash(proxyId1, proxyId2, hash)
+    
+    If Not IsNull(pair) Then 
+      Return pair
+    Endif
+    
+    '' TODO: posible funcion (revisar)
+    
+    ' // b2Settings.b2Assert( me.m_pairCount < b2Settings.b2_maxPairs && me.m_freePair != b2_nullPair)
+    pIndex = Me.m_freePair
+    
+    pair = Me.m_pairs[pIndex]
+    Me.m_freePair = pair.nextt
+    pair.proxyId1 = proxyId1
+    pair.proxyId2 = proxyId2
+    pair.status = 0
+    pair.userData = Null
+    pair.nextt = Me.m_hashTable[hash]
+    Me.m_hashTable[hash] = pIndex
+    Me.m_pairCount += 1
+    Return pair
+    
+End
+
+' //  Remove a pair, return the pair's userData. '' TODO: posible funcion (revisar)
+
+Public Sub RemovePair(proxyId1 As Variant, proxyId2 As Variant) As Variant ''funcio as variant ''funcion
+  ' // b2Settings.b2Assert( me.m_pairCount > 0)
+  
+  Dim temp As Variant
+  Dim hash As Variant 
+  Dim node As Variant 
+  Dim pNode As Variant
+  
+  Dim index As Variant
+  Dim pair As Variant
+  Dim userData As Variant
+  
+  If (proxyId1 > proxyId2) Then 
+    Temp = proxyId1
+    
+    proxyId1 = proxyId2
+    proxyId2 = Temp
+    ' // b2Math.b2Swap(proxyId1, proxyId2)
+  Endif
+  
+  hash = b2PairManager.Hash(proxyId1, proxyId2) And b2Pair.b2_tableMask
+  
+  node = Me.m_hashTable[hash]
+  
+  pNode = Null
+  
+  While (node <> b2Pair.b2_nullPair)
+    If (b2PairManager.Equals(Me.m_pairs[node], proxyId1, proxyId2)) Then 
+      index = node
+      
+      ' // *node = me.m_pairs[*node].next
+      If (pNode)
+        pNode.nextt = Me.m_pairs[node].nextt
+        
+      Else
+        Me.m_hashTable[hash] = Me.m_pairs[node].nextt
+      Endif
+      
+      pair = Me.m_pairs[index]
+      
+      userData = pair.userData
+      
+      ' //  Scrub
+      pair.nextt = Me.m_freePair
+      pair.proxyId1 = b2Pair.b2_nullProxy
+      pair.proxyId2 = b2Pair.b2_nullProxy
+      pair.userData = Null
+      pair.status = 0
+      Me.m_freePair = index
+      Me.m_pairCount -= 1
+      Return userData
+      
+    Else
+      
+      ' // node = & me.m_pairs[*node].next
+      pNode = Me.m_pairs[node]
+      node = pNode.next
+    Endif
+  Wend
+  
+  ' // b2Settings.b2Assert(false)
+  Return Null
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub Find(proxyId1 As Variant, proxyId2 As Variant) As Variant ''funcion
+  
+  Dim temp As Variant
+  Dim hash As Variant
+  
+  If (proxyId1 > proxyId2) Then 
+    Temp = proxyId1
+    
+    proxyId1 = proxyId2
+    proxyId2 = Temp
+  Endif
+  ' // b2Math.b2Swap(proxyId1, proxyId2)
+  hash = Me.Hash(proxyId1, proxyId2) & b2Pair.b2_tableMask
+  
+  Return Me.FindHash(proxyId1, proxyId2, hash)
+  
+End
+
+Public Sub FindHash(proxyId1 As Variant, proxyId2 As Variant, hash As Variant) As Variant ''funcio as variant ''funcion
+  
+  Dim index As Variant = Me.m_hashTable[hash]
+  
+  while(index <> b2Pair.b2_nullPair Or b2PairManager.Equals(Me.m_pairs[index], proxyId1, proxyId2) = False)
+  index = Me.m_pairs[index].nextt
+Wend
+
+If (index = b2Pair.b2_nullPair) Then 
+  Return Null
+Endif
+
+' // b2Settings.b2Assert(index < b2_maxPairs)
+Return Me.m_pairs[index]
+'' TODO: posible funcion (revisar)
+
+End
+
+Public Sub ValidateBuffer()
+  
+End
+
+Public Sub ValidateTable()
+  
+  m_broadPhase = Null
+  m_callback = Null
+  m_pairs = Null
+  m_freePair = 0
+  m_pairCount = 0
+  m_pairBuffer = Null
+  m_pairBufferCount = 0
+  m_hashTable = Null
+  
+End
+
+' //  static
+' //  Thomas Wang's hash, see: http:
+
+Public Sub Hash(proxyId1 As Variant, proxyId2 As Variant) As Variant ''funcion
+  
+  Dim key As Variant = ((proxyId2 < < 16) & 0 xffff0000) | proxyId1
+  ''TODO: FALTA POR TRADUCIR
+  'gambas-es.org: https://www.gambas-es.org/viewtopic.php?f=19&t=5402&highlight=
+  
+  key = ~key + ((key << 15) and 0xFFFF8000)
+  key = key ^ ((key > > 12) & 0 x000fffff)
+  key = key + ((key < < 2) & 0 xFFFFFFFC)
+  key = key ^ ((key > > 4) & 0 x0fffffff)
+  key = key * 2057
+  key = key ^ ((key > > 16) & 0 x0000ffff)
+  Return key
+  
+End
+
+Public Sub Equals(pair As Variant, proxyId1 As Variant, proxyId2 As Variant) As Boolean ''funcion
+  
+  Return (pair.proxyId1 = proxyId1 And pair.proxyId2 = proxyId2)
+  
+End
+
+Public Sub EqualsPair(pair1 As Variant, pair2 As Variant) As Boolean ''funcion
+  
+  Return (pair1.proxyId1 = pair2.proxyId1) And (pair1.proxyId2 = pair2.proxyId2)
+  
+End
+'' TODO: posible funcion (revisar)

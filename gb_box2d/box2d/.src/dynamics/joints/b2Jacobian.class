@@ -1,0 +1,59 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+you must Not  
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+  Public linear1 As Variant = New B2Vec2()
+Public angular1 As Varoamt = Null
+Public linear2 As Varoamt = New B2Vec2()
+Public angular2 As Varoamt = Null
+
+Public Sub SetZero()
+  
+  Me.linear1.SetZero()
+  Me.angular1 = 0.0
+  Me.linear2.SetZero()
+  Me.angular2 = 0.0
+  
+End
+
+Public Sub Set(x1 As Variant, a1 As Variant, x2 As Variant, a2 As Variant)
+  
+  Me.linear1.SetV(x1)
+  Me.angular1 = a1
+  Me.linear2.SetV(x2)
+  Me.angular2 = a2
+  
+End
+
+Public Sub Compute(x1 As Variant, a1 As Variant, x2 As Variant, a2 As Variant) As Variant ''funcio as variant ''funcion
+  ' // return b2Math.b2Dot( me.linear1, x1) + me.angular1 * a1 + b2Math.b2Dot( me.linear2, x2) + me.angular2 * a2
+  '' TODO: posible funcion (revisar)
+  
+  Return (Me.linear1.x * x1.x + Me.linear1.y * x1.y) + Me.angular1 * a1 + (Me.linear2.x * x2.x + Me.linear2.y * x2.y) + Me.angular2 * a2
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub _new()
+  ' //  initialize instance variables for references
+  
+  Me.linear1 = New B2Vec2()
+  Me.linear2 = New B2Vec2()
+  
+End

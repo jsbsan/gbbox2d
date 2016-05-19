@@ -1,0 +1,301 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Inherits B2Joint
+
+Public m_ground1 As Variant = Null
+Public m_ground2 As Variant = Null
+
+/ / One Of these Is NULL.
+Public m_revolute1 As Variant = Null
+Public m_prismatic1 As Variant = Null
+
+/ / One Of these Is NULL.
+Public m_revolute2 As Variant = Null
+Public m_prismatic2 As Variant = Null
+
+Public m_groundAnchor1 As Variant = New B2Vec2()
+Public m_groundAnchor2 As Variant = New B2Vec2()
+
+Public m_localAnchor1 As Variant = New B2Vec2()
+Public m_localAnchor2 As Variant = New B2Vec2()
+
+Public m_J As Variant = New B2Jacobian()
+
+Public m_constant As Variant = Null
+Public m_ratio As Variant = Null
+
+' // Effective mass
+Public m_mass As Variant = Null
+
+' // Impulse for accumulation/warm starting.
+Public m_impulse As Variant = Null
+
+Public Sub GetAnchor1() As Variant ''funcio as variant ''funcion
+  ' // return me.m_body1.m_position + b2MulMV( me.m_body1.m_R, me.m_localAnchor1)
+  '' TODO: posible funcion (revisar)
+  
+  Dim tMat As Variant = Me.m_body1.m_R
+  
+  Return New B2Vec2(Me.m_body1.m_position.x + (tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y), Me.m_body1.m_position.y + (tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y))
+  
+End
+
+Public Sub GetAnchor2() As Variant ''funcio as variant ''funcion
+  ' // return me.m_body2->m_position + b2Mul( me.m_body2->m_R, me.m_localAnchor2)
+  '' TODO: posible funcion (revisar)
+  
+  Dim tMat As Variant = Me.m_body2.m_R
+  
+  Return New B2Vec2(Me.m_body2.m_position.x + (tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y), Me.m_body2.m_position.y + (tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y))
+  
+End
+
+Public Sub GetReactionForce(invTimeStep As Variant) As Variant ''funcion
+  ' // b2Vec2 F(0.0f, 0.0f)
+  
+  Return New B2Vec2()
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub GetReactionTorque(invTimeStep As Variant) As Variant ''funcion
+  
+  Return 0.0
+  '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub GetRatio() As Variant ''funcion
+  
+  Return Me.m_ratio
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(def As Variant)
+  
+  Dim coordinate1 As Variant
+  Dim coordinate2 As Variant
+  ' //  The constructor for b2Joint
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2JointNode()
+  Me.m_node2 = New B2JointNode()
+  ' // 
+  Me.m_type = def.type
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_body1 = def.body1
+  Me.m_body2 = def.body2
+  Me.m_collideConnected = def.collideConnected
+  Me.m_islandFlag = False
+  Me.m_userData = def.userData
+  ' // 
+  ' //  initialize instance variables for references
+  Me.m_groundAnchor1 = New B2Vec2()
+  Me.m_groundAnchor2 = New B2Vec2()
+  Me.m_localAnchor1 = New B2Vec2()
+  Me.m_localAnchor2 = New B2Vec2()
+  Me.m_J = New B2Jacobian()
+  ' // 
+  ' //  parent constructor
+  ' // super(def)
+  ' // b2Settings.b2Assert(def.joint1.m_type == b2Joint.e_revoluteJoint || def.joint1.m_type == b2Joint.e_prismaticJoint)
+  ' // b2Settings.b2Assert(def.joint2.m_type == b2Joint.e_revoluteJoint || def.joint2.m_type == b2Joint.e_prismaticJoint)
+  ' // b2Settings.b2Assert(def.joint1.m_body1.IsStatic())
+  ' // b2Settings.b2Assert(def.joint2.m_body1.IsStatic())
+  Me.m_revolute1 = Null
+  Me.m_prismatic1 = Null
+  Me.m_revolute2 = Null
+  Me.m_prismatic2 = Null
+  
+  Me.m_ground1 = def.joint1.m_body1
+  Me.m_body1 = def.joint1.m_body2
+  If (def.joint1.m_type = b2Joint.e_revoluteJoint) Then 
+    Me.m_revolute1 = def.joint1
+    Me.m_groundAnchor1.SetV(Me.m_revolute1.m_localAnchor1)
+    Me.m_localAnchor1.SetV(Me.m_revolute1.m_localAnchor2)
+    coordinate1 = Me.m_revolute1.GetJointAngle()
+  Else
+    Me.m_prismatic1 = def.joint1
+    Me.m_groundAnchor1.SetV(Me.m_prismatic1.m_localAnchor1)
+    Me.m_localAnchor1.SetV(Me.m_prismatic1.m_localAnchor2)
+    coordinate1 = Me.m_prismatic1.GetJointTranslation()
+  Endif
+  
+  Me.m_ground2 = def.joint2.m_body1
+  Me.m_body2 = def.joint2.m_body2
+  If (def.joint2.m_type = b2Joint.e_revoluteJoint)them 
+    Me.m_revolute2 = def.joint2
+    Me.m_groundAnchor2.SetV(Me.m_revolute2.m_localAnchor1)
+    Me.m_localAnchor2.SetV(Me.m_revolute2.m_localAnchor2)
+    coordinate2 = Me.m_revolute2.GetJointAngle()
+  Else
+    Me.m_prismatic2 = def.joint2
+    Me.m_groundAnchor2.SetV(Me.m_prismatic2.m_localAnchor1)
+    Me.m_localAnchor2.SetV(Me.m_prismatic2.m_localAnchor2)
+    coordinate2 = Me.m_prismatic2.GetJointTranslation()
+  Endif
+  
+  Me.m_ratio = def.ratio
+  Me.m_constant = coordinate1 + Me.m_ratio * coordinate2
+  Me.m_impulse = 0.0
+  
+End
+
+Public Sub PrepareVelocitySolver()
+  
+  Dim g1 As Variant = Me.m_ground1
+  
+  Dim g2 As Variant = Me.m_ground2
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  ' //  temp vars
+  Dim ugX As Variant
+  Dim ugY As Variant
+  Dim rX As Variant
+  Dim rY As Variant
+  Dim tMat As Variant
+  Dim tVec As Variant
+  Dim crug As Variant
+  Dim K As Variant = 0.0
+  
+  Me.m_J.SetZero()
+  If (Me.m_revolute1) Then 
+    Me.m_J.angular1 = -1.0
+    K += b1.m_invI
+  Else
+    ' // b2Vec2 ug = b2MulMV(g1->m_R, me.m_prismatic1->m_localXAxis1)
+    tMat = g1.m_R
+    tVec = Me.m_prismatic1.m_localXAxis1
+    ugX = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+    ugY = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+    ' // b2Vec2 r = b2MulMV(b1->m_R, me.m_localAnchor1)
+    tMat = b1.m_R
+    rX = tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y
+    rY = tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y
+    ' // var crug = b2Cross(r, ug)
+    crug = rX * ugY - rY * ugX
+    ' // me.m_J.linear1 = -ug
+    Me.m_J.linear1.Set(- ugX, - ugY)
+    Me.m_J.angular1 = - crug
+    K += b1.m_invMass + b1.m_invI * crug * crug
+  Endif
+  
+  If (Me.m_revolute2) Then 
+    Me.m_J.angular2 = - Me.m_ratio
+    K += Me.m_ratio * Me.m_ratio * b2.m_invI
+  Else
+    ' // b2Vec2 ug = b2Mul(g2->m_R, me.m_prismatic2->m_localXAxis1)
+    tMat = g2.m_R
+    tVec = Me.m_prismatic2.m_localXAxis1
+    ugX = tMat.col1.x * tVec.x + tMat.col2.x * tVec.y
+    ugY = tMat.col1.y * tVec.x + tMat.col2.y * tVec.y
+    ' // b2Vec2 r = b2Mul(b2->m_R, me.m_localAnchor2)
+    tMat = b2.m_R
+    rX = tMat.col1.x * Me.m_localAnchor2.x + tMat.col2.x * Me.m_localAnchor2.y
+    rY = tMat.col1.y * Me.m_localAnchor2.x + tMat.col2.y * Me.m_localAnchor2.y
+    ' // float32 crug = b2Cross(r, ug)
+    crug = rX * ugY - rY * ugX
+    ' // me.m_J.linear2 = - me.m_ratio * ug
+    Me.m_J.linear2.Set(- Me.m_ratio * ugX, - Me.m_ratio * ugY)
+    Me.m_J.angular2 = - Me.m_ratio * crug
+    K += Me.m_ratio * Me.m_ratio * (b2.m_invMass + b2.m_invI * crug * crug)
+  Endif
+  
+  ' //  Compute effective mass.
+  ' // b2Settings.b2Assert(K > 0.0)
+  Me.m_mass = 1.0 / K
+  ' //  Warm starting.
+  ' // b1.m_linearVelocity += b1.m_invMass * me.m_impulse * me.m_J.linear1
+  b1.m_linearVelocity.x += b1.m_invMass * Me.m_impulse * Me.m_J.linear1.x
+  b1.m_linearVelocity.y += b1.m_invMass * Me.m_impulse * Me.m_J.linear1.y
+  b1.m_angularVelocity += b1.m_invI * Me.m_impulse * Me.m_J.angular1
+  ' // b2.m_linearVelocity += b2.m_invMass * me.m_impulse * me.m_J.linear2
+  b2.m_linearVelocity.x += b2.m_invMass * Me.m_impulse * Me.m_J.linear2.x
+  b2.m_linearVelocity.y += b2.m_invMass * Me.m_impulse * Me.m_J.linear2.y
+  b2.m_angularVelocity += b2.m_invI * Me.m_impulse * Me.m_J.angular2
+  
+End
+
+Public Sub SolveVelocityConstraints( Step As Variant)
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim Cdot As Variant = Me.m_J.Compute(b1.m_linearVelocity, b1.m_angularVelocity, b2.m_linearVelocity, b2.m_angularVelocity)
+  Dim impulse As Variant = - Me.m_mass * Cdot
+  
+  Me.m_impulse += impulse
+  b1.m_linearVelocity.x += b1.m_invMass * impulse * Me.m_J.linear1.x
+  b1.m_linearVelocity.y += b1.m_invMass * impulse * Me.m_J.linear1.y
+  b1.m_angularVelocity += b1.m_invI * impulse * Me.m_J.angular1
+  b2.m_linearVelocity.x += b2.m_invMass * impulse * Me.m_J.linear2.x
+  b2.m_linearVelocity.y += b2.m_invMass * impulse * Me.m_J.linear2.y
+  b2.m_angularVelocity += b2.m_invI * impulse * Me.m_J.angular2
+  
+End
+
+Public Sub SolvePositionConstraints() As Variant ''funcion
+  
+  Dim linearError As Variant = 0.0
+  
+  Dim b1 As Variant = Me.m_body1
+  
+  Dim b2 As Variant = Me.m_body2
+  
+  Dim coordinate1 As Variant
+  Dim coordinate2 As Variant
+  
+  Dim C As Variant
+  Dim impulse As Variant
+  
+  If (Me.m_revolute1) Then 
+    coordinate1 = Me.m_revolute1.GetJointAngle()
+  Else
+    coordinate1 = Me.m_prismatic1.GetJointTranslation()
+  Endif
+  
+  If (Me.m_revolute2)
+    coordinate2 = Me.m_revolute2.GetJointAngle()
+  Else
+    coordinate2 = Me.m_prismatic2.GetJointTranslation()
+  Endif
+  
+  C = Me.m_constant - (coordinate1 + Me.m_ratio * coordinate2)
+  
+  impulse = - Me.m_mass * C
+  
+  b1.m_position.x += b1.m_invMass * impulse * Me.m_J.linear1.x
+  b1.m_position.y += b1.m_invMass * impulse * Me.m_J.linear1.y
+  b1.m_rotation += b1.m_invI * impulse * Me.m_J.angular1
+  b2.m_position.x += b2.m_invMass * impulse * Me.m_J.linear2.x
+  b2.m_position.y += b2.m_invMass * impulse * Me.m_J.linear2.y
+  b2.m_rotation += b2.m_invI * impulse * Me.m_J.angular2
+  b1.m_R.Set(b1.m_rotation)
+  b2.m_R.Set(b2.m_rotation)
+  Return linearError < b2Settings.b2_linearSlop
+  
+End

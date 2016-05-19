@@ -1,0 +1,89 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not '
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  The pair manager is used by the broad-phase to quickly add/remove/find pairs
+' //  of overlapping proxies. It is based closely on code provided by Pierre Terdiman.
+' //  http:
+
+' ver signos especiales de java: 
+' http://www.w3schools.com/js/js_comparisons.asp
+' ver: b2Pair.js
+
+Public b2_nullPair As B2Settings.USHRT_MAX
+Public b2_nullProxy As B2Settings.USHRT_MAX
+Public b2_tableCapacity As B2Settings.b2_maxPairs
+Public b2_tableMask As B2Pair.b2_tableCapacity - 1
+Public e_pairBuffered As Integer = 0 x0001
+Public e_pairRemoved As Integer = 0 x0002
+Public e_pairFinal As Integer = 0 x0004
+
+Public userData As Variant
+Public proxyId1 As Variant = 0
+Public proxyId2 As Variant = 0
+Public nextt As Variant = 0 'cambio de next a nextt
+Public status As Variant = 0
+
+Public Sub SetBuffered()
+  
+  Me.status = Me.status Or Me.e_pairBuffered
+  
+End
+
+Public Sub ClearBuffered()
+  
+  Me.status = Me.status And (Not Me.e_pairBuffered)
+  
+End
+
+Public Sub IsBuffered() As Booblean  
+  
+  Return (Me.status And Me.e_pairBuffered) = Me.e_pairBuffered
+  
+End
+
+Public Sub SetRemoved()
+  
+  Me.status = Me.status Or Me.e_pairRemoved
+  
+End
+
+Public Sub ClearRemoved()
+  
+  Me.status = Me.status And (Not Me.e_pairRemoved)
+  
+End
+
+Public Sub IsRemoved()
+  
+  Return (Me.status & Me.e_pairRemoved) = Me.e_pairRemoved
+  
+End
+
+Public Sub SetFinal()
+  
+  Me.status = Me.status Or Me.e_pairFinal
+  
+End
+
+Public Sub IsFinal()
+  
+  Return (Me.status & Me.e_pairFinal) == Me.e_pairFinal
+  
+End

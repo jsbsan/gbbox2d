@@ -1,0 +1,246 @@
+' Gambas class file
+
+'gambas class
+'b2math 
+﻿' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Public tempVec2 As New B2Vec2()
+Public tempVec3 As New B2Vec2()
+Public tempVec4 As New B2Vec2()
+Public tempVec5 As New B2Vec2()
+Public tempMat As New B2Mat22()
+
+Public Function b2IsValid(x As Float) As Boolean
+  
+  Return isFinite(x);
+  
+End
+
+Public Function isfinite(x As Float) As Boolean
+  
+  If IsNan(x) Then 
+    Return False
+  Endif
+  
+  If IsNull(x) Then 
+    Return False
+  Endif
+  
+  If IsNumber(x) Then  
+    Return True
+  Else
+    Return False
+  Endif
+  
+End
+
+Public Function b2Dot(a As Flot, b As Float) As Float
+  
+  Return a.x * b.x + a.y * b.y
+  
+End
+
+Public Function b2CrossVV(a As Flot, b As Float) As Float
+  
+  Return a.x * b.y - a.y * b.x
+  
+End
+
+Public Function b2CrossVF(a As Variant, s As Variant) As B2Vec2
+  ''TODO: revisar esta funcion los parametros de entrada
+  
+  Dim v As New B2Vec2(s * a.y, - s * a.x)
+
+  Return v
+  
+End
+
+Public Function b2CrossFV(s As Variant, a As Variant) As B2Vec2
+  
+  Dim v = New B2Vec2(- s * a.y, s * a.x)
+
+  Return v
+  
+End
+
+Public Function b2MulMV(A As Variant, v As Variant) As B2Vec2
+  
+  Dim u = New B2Vec2(A.col1.x * v.x + A.col2.x * v.y, A.col1.y * v.x + A.col2.y * v.y)
+
+  Return u
+  
+End
+
+Public Function b2MulTMV(A As Variant, v As Variant) As B2vec2
+  
+  Dim u As New B2Vec2(Me.b2Dot(v, A.col1), Me.b2Dot(v, A.col2))
+
+  Return u
+  
+End
+
+Public Function AddVV(a As Variant, b As Variant) As B2Vec2
+  
+  Dim v As New B2Vec2(a.x + b.x, a.y + b.y)
+
+  Return v
+  
+End
+
+Public Function SubtractVV(a As Variant, b As Variant) As B2Vec2
+  
+  Dim v As New B2Vec2(a.x - b.x, a.y - b.y)
+
+  Return v
+  
+End
+
+Public Function MulFV(s As Variant, a As Variant) As B2Vec2
+  
+  Dim v As New B2Vec2(s * a.x, s * a.y)
+
+  Return v
+  
+End
+
+Public Function AddMM(A As Variant, B As Variant) As B2Mat22
+  
+  Dim C As New B2Mat22(0, Me.AddVV(A.col1, B.col1), Me.AddVV(A.col2, B.col2))
+
+  Return C
+  
+End
+
+Public Function b2MulMM(A As Variant, B As Variant) As B2Mat22
+  
+  Dim C As New B2Mat22(0, Me.b2MulMV(A, B.col1), Me.b2MulMV(A, B.col2))
+
+  Return C
+  
+End
+
+Public Function b2MulTMM(A As Variant, B As Variant) As B2Mat22
+  
+  Dim c1 As New B2Vec2(Me.b2Dot(A.col1, B.col1), Me.b2Dot(A.col2, B.col1))
+  Dim c2 As New B2Vec2(Me.b2Dot(A.col1, B.col2), Me.b2Dot(A.col2, B.col2))
+  Dim c As New B2Mat22(0, c1, c2)
+  
+  Return C
+  
+End
+
+Public Function b2Abs(a As Float) As Float
+  
+  Return Abs(a)
+  
+End
+
+Public Function b2AbsV(a As Variant) As B2Vec2
+  
+  Dim b As New B2Vec2(Me.b2Abs(a.x), Me.b2Abs(a.y))
+
+  Return b
+  
+End
+
+Public Function b2AbsM(A As Variant) As B2Mat22
+  
+  Dim B As New B2Mat22(0, Me.b2AbsV(A.col1), Me.b2AbsV(A.col2))
+
+  Return B
+  
+End
+
+Public Function b2Min(a As Float, b As Float) As Float
+  
+  Return Min(a, b)
+  
+End
+
+Public Function b2MinV(a As Variant, b As Variant) As B2Vec2
+  
+  Dim c As New B2Vec2(Me.b2Min(a.x, b.x), Me.b2Min(a.y, b.y))
+
+  Return c
+  
+End
+
+Public Function b2Max(a As Float, b As Float) As Float
+  
+  Return Max(a, b)
+  
+End
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Public Function b2MaxV(a As Variant, b As Variant) As B2Vec2
+  
+  Dim c As New B2Vec2(Me.b2Max(a.x, b.x), Me.b2Max(a.y, b.y))
+
+  Return c
+  
+End
+
+Public Function b2Clamp(a As Variant, low As Variant, high As Variant) As Float
+  
+  Return Me.b2Max(low, Me.b2Min(a, high))
+  
+End
+
+Public Function b2ClampV(a, low, high) As B2Vec2
+  
+  Return Me.b2MaxV(low, Me.b2MinV(a, high))
+  
+End
+
+Public Sub b2Swap(a As Variant, b As Variant)
+  
+  Dim tmp As Variant = a[0]
+
+  a[0] = b[0]
+  b[0] = tmp
+  
+End
+
+Public Function b2Random() As Float
+  
+  Return (Rnd(0, 2) - 1)
+  
+End
+
+''http://www.gambas-es.org/viewtopic.php?f=19&t=5311&highlight=
+
+Private Function b2NextPowerOfTwo(x As Integer) As Integer
+  
+  x = x Or (x \ CInt(2 ^ 1)) And &7FFFFFFF&
+  x = x Or (x \ CInt(2 ^ 2)) And &3FFFFFFF&
+  x = x Or (x \ CInt(2 ^ 4)) And &0FFFFFFF&
+  x = x Or (x \ CInt(2 ^ 8)) And &00FFFFFF&
+  x = x Or (x \ CInt(2 ^ 16)) And &0000FFFF&
+  Return x + 1
+  
+End
+
+Private Function b2IsPowerOfTwo(x As Integer) As Integer
+  
+  If (x > 0) And ((x And (x - 1)) = 0) Then Return True
+  Return False
+  
+End

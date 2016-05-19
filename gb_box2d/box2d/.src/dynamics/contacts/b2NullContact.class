@@ -1,0 +1,64 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+'  you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Inherits B2Contact
+
+Public Sub _new(s1 As Variant, s2 As Variant) As Variant ''funcion
+  ' //  The constructor for b2Contact
+  ' //  initialize instance variables for references
+  
+  Me.m_node1 = New B2ContactNode()
+  Me.m_node2 = New B2ContactNode()
+  ' // 
+  Me.m_flags = 0
+  If (Not s1 Or Not s2) Then 
+    Me.m_shape1 = Null
+    Me.m_shape2 = Null
+    Return
+  Endif
+  
+  Me.m_shape1 = s1
+  Me.m_shape2 = s2
+  Me.m_manifoldCount = 0
+  Me.m_friction = sqrt(Me.m_shape1.m_friction * Me.m_shape2.m_friction)
+  Me.m_restitution = b2Math.b2Max(Me.m_shape1.m_restitution, Me.m_shape2.m_restitution)
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_node1.contact = Null
+  Me.m_node1.prev = Null
+  Me.m_node1.next = Null
+  Me.m_node1.other = Null
+  Me.m_node2.contact = Null
+  Me.m_node2.prev = Null
+  Me.m_node2.next = Null
+  Me.m_node2.other = Null
+  ' // 
+  
+End
+
+Public Sub Evaluate()
+  
+End
+
+Public Sub GetManifolds() As Variant
+  
+  Return Null
+  
+End

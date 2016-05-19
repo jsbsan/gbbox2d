@@ -1,0 +1,510 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not   
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  A rigid body. Internal computation are done in terms
+' //  of the center of mass position. The center of mass may
+' //  be offset from the body's origin.
+' //  Set the position of the body's origin and rotation (radians).
+' //  This breaks any contacts and wakes the other bodies.
+' //  Temp mat
+Public sMat0 As Variant = New B2Mat22()
+
+Public m_flags As Variant = 0
+
+Public m_position As Variant = New B2Vec2()
+Public m_rotation As Variant = Null
+Public m_R As Variant = New B2Mat22(0)
+
+/ / Conservative advancement data.
+Public m_position0 As Variant = New B2Vec2()
+Public m_rotation0 As Variant = Null
+
+Public m_linearVelocity As Variant = Null
+Public m_angularVelocity As Variant = Null
+
+Public m_force As Variant = Null
+Public m_torque As Variant = Null
+
+Public m_center As Variant = Null
+
+Public m_world As Variant = Null
+Public m_prev As Variant = Null
+Public m_next As Variant = Null
+
+Public m_shapeList As Variant = Null
+Public m_shapeCount As Variant = 0
+
+Public m_jointList As Variant = Null
+Public m_contactList As Variant = Null
+
+Public m_mass As Variant = Null
+Public m_invMass As Variant = Null
+Public m_I As Variant = Null
+Public m_invI As Variant = Null
+
+Public m_linearDamping As Variant = Null
+Public m_angularDamping As Variant = Null
+
+Public m_sleepTime As Variant = Null
+
+Public m_userData As Variant = Null
+
+Public e_staticFlag As Variant = 0 x0001
+Public e_frozenFlag As Variant = 0 x0002
+Public e_islandFlag As Variant = 0 x0004
+Public e_sleepFlag As Variant = 0 x0008
+Public e_allowSleepFlag As Variant = 0 x0010
+Public e_destroyFlag As Variant = 0 x0020
+
+Public Sub SetOriginPosition(position As Variant, rotation As Variant) As Variant ''funcion
+  
+  Dim s As Variant
+  
+  If (Me.IsFrozen()) Then 
+    Return
+  Endif
+  
+  Me.m_rotation = rotation
+  Me.m_R.Set(Me.m_rotation)
+  Me.m_position = b2Math.AddVV(position, b2Math.b2MulMV(Me.m_R, Me.m_center))
+  Me.m_position0.SetV(Me.m_position)
+  
+  Me.m_rotation0 = Me.m_rotation
+  
+  s = Me.m_shapeList
+  While s <> Null
+    s = s.m_next)
+    s.Synchronize(Me.m_position, Me.m_R, Me.m_position, Me.m_R)
+    Me.m_world.m_broadPhase.Commit()
+  Wend
+  
+End
+
+' //  Get the position of the body's origin. The body's origin does not
+' //  necessarily coincide with the center of mass. It depends on how the
+' //  shapes are created
+
+Public Sub GetOriginPosition() As Variant ''funcion
+  
+  Return b2Math.SubtractVV(Me.m_position, b2Math.b2MulMV(Me.m_R, Me.m_center))
+  
+End
+
+' //  Set the position of the body's center of mass and rotation (radians).
+' //  This breaks any contacts and wakes the other bodies.
+
+Public Sub SetCenterPosition(position As Variant, rotation As Variant) As Variant ''funcion
+  
+  Dim s As Variant
+
+  If (Me.IsFrozen()) Then 
+    Return
+  Endif
+  
+  Me.m_rotation = rotation
+  Me.m_R.Set(Me.m_rotation)
+  Me.m_position.SetV(position)
+  Me.m_position0.SetV(Me.m_position)
+  Me.m_rotation0 = Me.m_rotation
+  s = Me.m_shapeList
+  While s <> Null
+    s = s.m_next)
+    s.Synchronize(Me.m_position, Me.m_R, Me.m_position, Me.m_R)
+    Me.m_world.m_broadPhase.Commit()
+  Wend
+  
+End
+
+' //  Get the position of the body's center of mass. The body's center of mass
+' //  does not necessarily coincide with the body's origin. It depends on how the
+' //  shapes are created.
+Public Sub GetCenterPosition() As Variant ''funcion
+  
+  Return Me.m_position
+  
+End
+
+' //  Get the rotation in radians.
+Public Sub GetRotation() As Variant ''funcion
+  
+  Return Me.m_rotation
+  
+End
+
+' //  Set/Get the linear velocity of the center of mass.
+Public Sub GetRotationMatrix() As Variant ''funcion
+  
+  Return Me.m_R
+  
+End
+
+Public Sub SetLinearVelocity(v As Variant)
+  
+  Me.m_linearVelocity.SetV(v)
+  
+End
+
+Public Sub GetLinearVelocity() As Variant ''funcion
+  
+  Return Me.m_linearVelocity
+  
+End
+
+' //  Set/Get the angular velocity.
+Public Sub SetAngularVelocity(w As Variant)
+  
+  Me.m_angularVelocity = w
+  
+End
+
+Public Sub GetAngularVelocity() As Variant ''funcion
+  
+  Return Me.m_angularVelocity
+  
+End
+
+' //  Apply a force at a world point. Additive.
+Public Sub ApplyForce(force As Variant, point As Variant)
+  
+  If (Me.IsSleeping() = False) Then 
+    Me.m_force.Add(force)
+    Me.m_torque += b2Math.b2CrossVV(b2Math.SubtractVV(point, Me.m_position), force)
+  Endif
+  
+End
+
+' //  Apply a torque. Additive.
+Public Sub ApplyTorque(torque As Variant)
+  
+  If (Me.IsSleeping() = False)
+    Me.m_torque += torque
+  Endif
+  
+End
+
+' //  Apply an impulse at a point. This immediately modifies the velocity.
+Public Sub ApplyImpulse(impulse As Variant, point As Variant)
+  
+  If (Me.IsSleeping() = False) Then 
+    Me.m_linearVelocity.Add(b2Math.MulFV(Me.m_invMass, impulse))
+    Me.m_angularVelocity += (Me.m_invI * b2Math.b2CrossVV(b2Math.SubtractVV(point, Me.m_position), impulse))
+    
+End
+
+Public Sub GetMass() As Variant ''funcion
+  
+  Return Me.m_mass
+  
+End
+
+Public Sub GetInertia() As Variant ''funcion
+  
+  Return Me.m_I
+  
+End
+
+' //  Get the world coordinates of a point give the local coordinates
+' //  relative to the body's center of mass.
+
+Public Sub GetWorldPoint(localPoint As Variant) As Variant ''funcion
+  
+  Return b2Math.AddVV(Me.m_position, b2Math.b2MulMV(Me.m_R, localPoint))
+  
+End
+
+' //  Get the world coordinates of a vector given the local coordinates.
+
+Public Sub GetWorldVector(localVector As Variant) As Variant ''funcion
+  
+  Return b2Math.b2MulMV(Me.m_R, localVector)
+  
+End
+
+' //  Returns a local point relative to the center of mass given a world point.
+
+Public Sub GetLocalPoint(worldPoint As Variant) As Variant ''funcion
+  
+  Return b2Math.b2MulTMV(Me.m_R, b2Math.SubtractVV(worldPoint, Me.m_position))
+  
+End
+
+' //  Returns a local vector given a world vector.
+
+Public Sub GetLocalVector(worldVector As Variant) As Variant ''funcion
+  
+  Return b2Math.b2MulTMV(Me.m_R, worldVector)
+  
+End
+
+' //  Is this body static (immovable)?
+Public Sub IsStatic() As Variant ''funcion
+  
+  Return (Me.m_flags And b2Body.e_staticFlag) = b2Body.e_staticFlag
+  
+End
+
+Public Sub IsFrozen() As Variant ''funcion
+  
+  Return (Me.m_flags And b2Body.e_frozenFlag) = b2Body.e_frozenFlag
+  
+End
+
+' //  Is this body sleeping (not simulating).
+Public Sub IsSleeping() As Variant ''funcion
+  
+  Return (Me.m_flags And b2Body.e_sleepFlag) = b2Body.e_sleepFlag
+  
+End
+
+' //  You can disable sleeping on this particular body.
+Public Sub AllowSleeping(flag As Variant)
+  ''TODO: Mirar signos especiales
+  
+  If (flag) Then 
+    Me.m_flags |= b2Body.e_allowSleepFlag
+  Else
+    Me.m_flags &= ~b2Body.e_allowSleepFlag
+    Me.WakeUp()
+    
+End
+
+End
+
+' //  Wake up this body so it will begin simulating.
+Public Sub WakeUp()
+  ''TODO: Mirar signos especiales
+  
+  Me.m_flags &= ~b2Body.e_sleepFlag
+  Me.m_sleepTime = 0.0
+  ' //  Get the list of all shapes attached to this body.
+  
+End
+
+Public Sub GetShapeList() As Variant ''funcion
+  
+  Return Me.m_shapeList
+  
+End
+
+Public Sub GetContactList() As Variant ''funcion
+  
+  Return Me.m_contactList
+  
+End
+
+Public Sub GetJointList() As Variant ''funcion
+  
+  Return Me.m_jointList
+  
+End
+
+' //  Get the next body in the world's body list.
+
+Public Sub GetNext() As Variant ''funcion
+  
+  Return Me.m_next
+  
+End
+
+Public Sub GetUserData() As Variant ''funcion
+  
+  Return Me.m_userData
+  
+End
+
+' // --------------- Internals Below -------------------
+
+Public Sub _new(bd As Variant, world As Variant)
+  
+  Dim i As Variant = 0
+  Dim sd As Variant
+  Dim massData As Variant
+  Dim massDatas As Variant
+  Dim r As Variant 
+  Dim shape As Variant 
+  ' //  initialize instance variables for references
+  Me.sMat0 = New B2Mat22()
+  Me.m_position = New B2Vec2()
+  Me.m_R = New B2Mat22(0)
+  Me.m_position0 = New B2Vec2()
+  ' // 
+  Me.m_flags = 0
+  Me.m_position.SetV(bd.position)
+  Me.m_rotation = bd.rotation
+  Me.m_R.Set(Me.m_rotation)
+  Me.m_position0.SetV(Me.m_position)
+  Me.m_rotation0 = Me.m_rotation
+  Me.m_world = world
+  Me.m_linearDamping = b2Math.b2Clamp(1.0 - bd.linearDamping, 0.0, 1.0)
+  Me.m_angularDamping = b2Math.b2Clamp(1.0 - bd.angularDamping, 0.0, 1.0)
+  Me.m_force = New B2Vec2(0.0, 0.0)
+  Me.m_torque = 0.0
+  Me.m_mass = 0.0
+  massDatas = New Array(b2Settings.b2_maxShapesPerBody)
+  
+  For i = 0 To b2Settings.b2_maxShapesPerBody - 1
+    massDatas[i] = New B2MassData()
+  Next
+  
+  ' //  Compute the shape mass properties, the bodies total mass and COM.
+  Me.m_shapeCount = 0
+  Me.m_center = New B2Vec2(0.0, 0.0)
+  
+  For i = 0 To b2Settings.b2_maxShapesPerBody - 1
+    sd = bd.shapes[i]
+    If (sd = Null) Then Break
+    massData = massDatas[i]
+    sd.ComputeMass(massData)
+    Me.m_mass += massData.mass
+    ' // me.m_center += massData->mass * (sd->localPosition + massData->center)
+    Me.m_center.x += massData.mass * (sd.localPosition.x + massData.center.x)
+    Me.m_center.y += massData.mass * (sd.localPosition.y + massData.center.y)
+    Me.m_shapeCount += 1
+  Next
+  ' //  Compute center of mass, and shift the origin to the COM.
+  If (Me.m_mass > 0.0) Then 
+    Me.m_center.Multiply(1.0 / Me.m_mass)
+    Me.m_position.Add(b2Math.b2MulMV(Me.m_R, Me.m_center))
+  Else
+    Me.m_flags |= b2Body.e_staticFlag
+  Endif
+  
+  ' //  Compute the moment of inertia.
+  Me.m_I = 0.0
+  For i = 0 To Me.m_shapeCount - 1
+    sd = bd.shapes[i]
+    massData = massDatas[i]
+    Me.m_I += massData.I
+    r = b2Math.SubtractVV(b2Math.AddVV(sd.localPosition, massData.center), Me.m_center)
+    Me.m_I += massData.mass * b2Math.b2Dot(r, r)
+  Next
+  
+  If (Me.m_mass > 0.0) Then
+    Me.m_invMass = 1.0 / Me.m_mass
+  Else
+    Me.m_invMass = 0.0
+    If (Me.m_I > 0.0 & & bd.preventRotation == False)
+      Me.m_invI = 1.0 / Me.m_I
+    Else
+      Me.m_I = 0.0
+      Me.m_invI = 0.0
+    Endif
+    
+    ' //  Compute the center of mass velocity.
+    Me.m_linearVelocity = b2Math.AddVV(bd.linearVelocity, b2Math.b2CrossFV(bd.angularVelocity, Me.m_center))
+    Me.m_angularVelocity = bd.angularVelocity
+    Me.m_jointList = Null
+    Me.m_contactList = Null
+    Me.m_prev = Null
+    Me.m_next = Null
+    ' //  Create the shapes.
+    Me.m_shapeList = Null
+    
+    For i = 0 To Me.m_shapeCount - 1
+      sd = bd.shapes[i]
+      shape = b2Shape.Create(sd, Me, Me.m_center)
+      
+      shape.m_next = Me.m_shapeList
+      Me.m_shapeList = shape
+      Me.m_sleepTime = 0.0
+      If (bd.allowSleep) Then
+        ''TODO Ve	 signos especiales....
+        Me.m_flags |= b2Body.e_allowSleepFlag
+      Endif
+      
+      If (bd.isSleeping) Then 
+        Me.m_flags |= b2Body.e_sleepFlag
+      Endif
+      If ((Me.m_flags And b2Body.e_sleepFlag) Or Me.m_invMass = 0.0) Then 
+        Me.m_linearVelocity.Set(0.0, 0.0)
+        Me.m_angularVelocity = 0.0
+      Endif
+      
+      Me.m_userData = bd.userData
+      
+End
+
+Public Sub Destroy()
+  
+  Dim s As Variant = Me.m_shapeList
+  Dim s0 As Variant
+  
+  While (s)
+    s0 = s
+    s = s.m_next
+    b2Shape.Destroy(s0)
+  Wend
+  
+End
+
+Public Sub SynchronizeShapes()
+  
+  Dim s As Variant
+  ' // b2Mat22 R0( me.m_rotation0)
+  Me.sMat0.Set(Me.m_rotation0)
+  s = Me.m_shapeList
+  While (s <> Null)
+    s = s.m_next)
+    s.Synchronize(Me.m_position0, Me.sMat0, Me.m_position, Me.m_R)
+  Wend
+  
+End
+
+Public Sub QuickSyncShapes()
+  
+  Dim s As Variant = Me.m_shapeList
+  
+  While (s <> Null)
+    s = s.m_next)
+    s.QuickSync(Me.m_position, Me.m_R)
+  Wend
+  
+End
+
+' //  This is used to prevent connected bodies from colliding.
+' //  It may lie, depending on the collideConnected flag.
+Public Sub IsConnected(other As Variant) As Variant ''funcio as variant ''funcion
+  
+  Dim jn As Variant = Me.m_jointList
+  
+  While (jn <> Null)
+    jn = jn.next)
+    If (jn.other = other) Then 
+      Return jn.joint.m_collideConnected == False
+      endiif
+    Wend
+    
+    Return False
+    
+End
+
+Public Sub Freeze()
+  
+  Dim var s As Variant = Me.m_shapeList
+
+  Me.m_flags |= b2Body.e_frozenFlag
+  Me.m_linearVelocity.SetZero()
+  Me.m_angularVelocity = 0.0
+  
+  While (s <> Null)
+    s = s.m_next)
+    s.DestroyProxy()
+  Wend
+  
+End

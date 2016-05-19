@@ -1,0 +1,83 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Public type As Integer 0
+Public userData As Variant = Null
+Public localPosition As Variant = Null
+Public localRotation As Variant = Null
+Public friction As Variant = Null
+Public restitution As Variant = Null
+Public density As Variant = Null
+' //  The collision category bits. Normally you would just set one bit.
+Public categoryBits As Integer = 0
+Public maskBits As Integer = 0
+Public groupIndex As Integer = 0
+
+Public Sub _new()
+  
+  Me.type = b2Shape.e_unknownShape
+  Me.userData = Null
+  Me.localPosition = New B2Vec2(0.0, 0.0)
+  Me.localRotation = 0.0
+  Me.friction = 0.2
+  Me.restitution = 0.0
+  Me.density = 0.0
+  Me.categoryBits = 0 x0001
+  Me.maskBits = 0 xFFFF
+  Me.groupIndex = 0
+  
+End
+
+Public Sub ComputeMass(massData As Variant)
+  
+  Dim circle As Variant 
+  Dim box As Variant 
+  Dim poly As Variant
+  
+  massData.center = New B2Vec2(0.0, 0.0)
+  If (Me.density = 0.0) Then
+    massData.mass = 0.0
+    massData.center.Set(0.0, 0.0)
+    massData.I = 0.0
+  Endif
+  
+  Select Case Me.type
+    Case b2Shape.e_circleShape:
+      circle = Me
+      massData.mass = Me.density * b2Settings.b2_pi * circle.radius * circle.radius
+      massData.center.Set(0.0, 0.0)
+      massData.I = 0.5 * (massData.mass) * circle.radius * circle.radius
+    Case b2Shape.e_boxShape:
+      box = Me
+      massData.mass = 4.0 * Me.density * box.extents.x * box.extents.y
+      massData.center.Set(0.0, 0.0)
+      massData.I = massData.mass / 3.0 * b2Math.b2Dot(box.extents, box.extents)
+    Case b2Shape.e_polyShape:
+      poly = this
+      b2Shape.PolyMass(massData, poly.vertices, poly.vertexCount, Me.density)
+    Default
+      massData.mass = 0.0
+      massData.center.Set(0.0, 0.0)
+      massData.I = 0.0
+      Break
+  End Select
+  
+End

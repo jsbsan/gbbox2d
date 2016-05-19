@@ -1,0 +1,210 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not  
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' // typedef b2Contact* b2ContactCreateFcn(b2Shape* shape1, b2Shape* shape2, b2BlockAllocator* allocator)
+' // typedef void b2ContactDestroyFcn(b2Contact* contact, b2BlockAllocator* allocator)
+
+Public m_flags As Integer = 0
+' //  World pool and list pointers.
+Public m_prev As Variant = Null
+Public m_next As Variant = Null
+' //  Nodes for connecting bodies.
+Public m_node1 As New 2 ContactNode()
+Public m_node2 As New 2 ContactNode()
+
+Public m_shape1 As Variant = Null
+Public m_shape2 As Variant = Null
+Public foldCount As Variant = 0
+' //  Combined friction
+Public m_friction As Variant = Null
+Public m_restitution As Variant = Null
+
+Public e_islandFlag As Variant = 0 x0001
+Public e_destroyFlag As Variant = 0 x0002
+
+Public s_registers As Variant = Null
+Public s_initialized As Variant = False
+
+Public Sub GetManifolds() As Variant
+  
+  Return Null '' TODO: posible funcion (revisar)
+  
+End
+
+Public Sub GetManifoldCount() As Variant ''funcion
+  
+  Return Me.m_manifoldCount
+  
+End
+
+Public Sub GetNext() As Variant ''funcion
+  
+  Return Me.m_next
+  
+End
+
+Public Sub GetShape1() As Variant ''funcion
+  
+  Return Me.m_shape1
+  
+End
+
+Public Sub GetShape2() As Variant ''funcion
+  
+  Return Me.m_shape2
+  '' TODO: posible funcion (revisar)
+  
+End
+' // --------------- Internals Below -------------------
+' //  me.m_flags
+' //  enum
+
+Public Sub _new(s1 As Variant, s2 As Variant) As Variant ''funcion
+  ' //  initialize instance variables for references
+  
+  Me.m_node1 = New B2ContactNode()
+  Me.m_node2 = New B2ContactNode()
+  ' // 
+  Me.m_flags = 0
+  If (Not s1 Or Not s2) Then 
+    Me.m_shape1 = Null
+    Me.m_shape2 = Null
+    Return
+  Endif
+  
+  Me.m_shape1 = s1
+  Me.m_shape2 = s2
+  Me.m_manifoldCount = 0
+  Me.m_friction = sqrt(Me.m_shape1.m_friction * Me.m_shape2.m_friction)
+  Me.m_restitution = b2Math.b2Max(Me.m_shape1.m_restitution, Me.m_shape2.m_restitution)
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_node1.contact = Null
+  Me.m_node1.prev = Null
+  Me.m_node1.next = Null
+  Me.m_node1.other = Null
+  Me.m_node2.contact = Null
+  Me.m_node2.prev = Null
+  Me.m_node2.next = Null
+  Me.m_node2.other = Null
+  ' // virtual ~b2Contact() 
+  
+End
+
+Public Sub Evaluate()
+  
+End
+
+'-----------------------------------------
+Public Sub AddType(createFcn As Variant, destroyFcn As Variant, type1 As Variant, type2 As Variant)
+  
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
+  Me.s_registers[type1][type2].createFcn = createFcn
+  Me.s_registers[type1][type2].destroyFcn = destroyFcn
+  Me.s_registers[type1][type2].primary = True
+  If (type1 <> type2) Then
+    Me.s_registers[type2][type1].createFcn = createFcn
+    Me.s_registers[type2][type1].destroyFcn = destroyFcn
+    Me.s_registers[type2][type1].primary = False
+  Endif
+  
+End
+
+Public Sub InitializeRegisters()
+  
+  Dim i, j As Integer
+  
+  Me.s_registers = New Variant[]
+  For i = 0 To b2Shape.e_shapeTypeCount
+    Me.s_registers[i] = New New Variant[]
+    
+    For j = 0 To b2Shape.e_shapeTypeCount
+      Me.s_registers[i][j] = New B2ContactRegister()
+    Next
+  Next
+  
+  b2Contact.AddType(b2CircleContact.Create, b2CircleContact.Destroy, b2Shape.e_circleShape, b2Shape.e_circleShape)
+  b2Contact.AddType(b2PolyAndCircleContact.Create, b2PolyAndCircleContact.Destroy, b2Shape.e_polyShape, b2Shape.e_circleShape)
+  b2Contact.AddType(b2PolyContact.Create, b2PolyContact.Destroy, b2Shape.e_polyShape, b2Shape.e_polyShape)
+  
+End
+
+Public Sub Create(shape1 As Variant, shape2 As Variant, allocator As Variant) As Variant ''funcio as variant ''funcio as variant ''funcion
+  
+  Dim createFcn As Variant
+  Dim type2 As Variant 
+  Dim type1 As Variant
+  Dim c As Variant 
+  
+  Dim m As Variant
+  Dim i As Integer
+  
+  If (b2Contact.s_initialized = False) Then
+    b2Contact.InitializeRegisters()
+    b2Contact.s_initialized = True
+  Endif
+  
+  type1 = shape1.m_type
+  
+  type2 = shape2.m_type
+  
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
+  createFcn = Me.s_registers[type1][type2].createFcn
+  
+  If (createFcn) Then 
+    If (b2Contact.s_registers[type1][type2].primary)
+      Return createFcn(shape1, shape2, allocator)
+    Else
+      c = createFcn(shape2, shape1, allocator)
+      For i = 0 To c.GetManifoldCount()
+        
+        m = c.GetManifolds()[i]
+        m.normal = m.normal.Negative()
+      Next
+      
+      Return c
+    Endif
+    
+  Else
+    Return Null
+  Endif
+  
+End
+
+Public Sub Destroy(contact As Variant, allocator As Variant)
+  
+  Dim type1 As Variant
+  Dim type2 As Variant
+  Dim destroyFcn As Variant 
+  ' // b2Settings.b2Assert(b2Contact.s_initialized == true)
+  If (contact.GetManifoldCount() > 0)
+    contact.m_shape1.m_body.WakeUp()
+    contact.m_shape2.m_body.WakeUp()
+  Endif
+  type1 = contact.m_shape1.m_type
+  
+  type2 = contact.m_shape2.m_type
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type1 && type1 < b2Shape.e_shapeTypeCount)
+  ' // b2Settings.b2Assert(b2Shape.e_unknownShape < type2 && type2 < b2Shape.e_shapeTypeCount)
+  destroyFcn = b2Contact.s_registers[type1][type2].destroyFcn
+  destroyFcn(contact, allocator)
+  
+End

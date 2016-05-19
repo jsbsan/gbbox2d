@@ -1,0 +1,82 @@
+' Gambas class file
+
+'gambas class
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+''TODO: ver si hay que declararla como propiedades
+Public nullVec As Variant ''TODO: seguramente es un vector
+Public USHRT_MAX As Float
+Public b2_pi As Float
+Public b2_massUnitsPerKilogram As Float
+Public b2_timeUnitsPerSecond As Float
+Public b2_lengthUnitsPerMeter As Float
+Public b2_maxManifoldPointsas float
+Public b2_maxShapesPerBody As Float
+Public b2_maxPolyVertices As Float
+Public b2_maxProxies As Float
+Public b2_maxPairs As Float
+Public b2_linearSlop As Float
+Public b2_angularSlop As Float
+Public b2_velocityThreshold As Float
+Public b2_maxLinearCorrection As Float
+Public b2_maxAngularCorrection As Float
+Public b2_contactBaumgarte As Float
+Public b2_timeToSleep As Float
+Public b2_linearSleepTolerance As Float
+Public b2_angularSleepTolerance As Float
+
+Public Sub _new()
+  
+  inicialize()
+  
+End
+
+Public Sub inicialize()
+  ''TODO: SUBLIME varios cursores, ctrl + D'
+  
+  USHRT_MAX = 0 x0000ffff
+  b2_pi = Pi
+  b2_massUnitsPerKilogram = 1.0
+  b2_timeUnitsPerSecond = 1.0
+  b2_lengthUnitsPerMeter = 30.0
+  b2_maxManifoldPoints = 2
+  b2_maxShapesPerBody = 64
+  b2_maxPolyVertices = 8
+  b2_maxProxies = 1024
+  b2_maxPairs = 8 * b2_maxProxies
+  b2_linearSlop = 0.005 * b2_lengthUnitsPerMeter
+  b2_angularSlop = 2.0 / 180.0 * b2_pi
+  b2_velocityThreshold = 1.0 * b2_lengthUnitsPerMeter / b2_timeUnitsPerSecond
+  b2_maxLinearCorrection = 0.2 * b2_lengthUnitsPerMeter
+  b2_maxAngularCorrection = 8.0 / 180.0 * b2_pi
+  b2_contactBaumgarte = 0.2
+  b2_timeToSleep = 0.5 * b2_timeUnitsPerSecond
+  b2_linearSleepTolerance = 0.01 * b2_lengthUnitsPerMeter / b2_timeUnitsPerSecond
+  b2_angularSleepTolerance = 2.0 / 180.0 / b2_timeUnitsPerSecond
+  
+End
+
+Public Function b2Assert(a As Variant)
+  ''TODO: http://www.htmlpoint.com/javascript/corso/js_30.htm
+  
+  If Not a Then 
+    nullVec.x += 1
+  Endif
+  
+End

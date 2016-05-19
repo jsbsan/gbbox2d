@@ -1,0 +1,179 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Inherits B2Shape
+
+Public m_localPosition As New B2Vec2()
+Public m_radius As Float
+
+Public Sub TestPoint(p As Variant) As Variant 
+  
+  Dim d As Variant = New B2Vec2()
+
+  d.SetV(p)
+  d.Subtract(Me.m_position)
+  Return b2Math.b2Dot(d, d) <= Me.m_radius * Me.m_radius
+  
+End
+
+Public Sub initialize(def As Variant, body As Variant, localCenter As Variant)
+  ' //  initialize instance variables for references
+  
+  Dim circle As Variant = def
+  Dim rX As Variant = Me.m_R.col1.x * Me.m_localPosition.x + Me.m_R.col2.x * Me.m_localPosition.y
+  Dim rY As Variant = Me.m_R.col1.y * Me.m_localPosition.x + Me.m_R.col2.y * Me.m_localPosition.y
+  Dim aabb As Variant = New B2AABB()
+  Dim broadPhase As Variant = Me.m_body.m_world.m_broadPhase
+  
+  Me.m_R = New B2Mat22()
+  Me.m_position = New B2Vec2()
+  ' // 
+  ' //  The constructor for b2Shape
+  Me.m_userData = def.userData
+  Me.m_friction = def.friction
+  Me.m_restitution = def.restitution
+  Me.m_body = body
+  Me.m_proxyId = b2Pair.b2_nullProxy
+  Me.m_maxRadius = 0.0
+  Me.m_categoryBits = def.categoryBits
+  Me.m_maskBits = def.maskBits
+  Me.m_groupIndex = def.groupIndex
+  ' // 
+  ' //  initialize instance variables for references
+  Me.m_localPosition = New B2Vec2()
+  ' // 
+  ' // super(def, body)
+  ' // b2Settings.b2Assert(def.type == b2Shape.e_circleShape)
+  
+  ' // me.m_localPosition = def.localPosition - localCenter
+  Me.m_localPosition.Set(def.localPosition.x - localCenter.x, def.localPosition.y - localCenter.y)
+  Me.m_type = b2Shape.e_circleShape
+  Me.m_radius = circle.radius
+  Me.m_R.SetM(Me.m_body.m_R)
+  ' // b2Vec2 r = b2Mul( me.m_body-> me.m_R, me.m_localPosition)
+  
+  ' // me.m_position = me.m_body-> me.m_position + r
+  Me.m_position.x = Me.m_body.m_position.x + rX
+  Me.m_position.y = Me.m_body.m_position.y + rY
+  ' // me.m_maxRadius = r.Length() + me.m_radius
+  Me.m_maxRadius = Math.sqrt(rX * rX + rY * rY) + Me.m_radius
+  
+  aabb.minVertex.Set(Me.m_position.x - Me.m_radius, Me.m_position.y - Me.m_radius)
+  aabb.maxVertex.Set(Me.m_position.x + Me.m_radius, Me.m_position.y + Me.m_radius)
+  
+  If (broadPhase.InRange(aabb))
+    Me.m_proxyId = broadPhase.CreateProxy(aabb, Me)
+  Else
+    Me.m_proxyId = b2Pair.b2_nullProxy
+  Endif
+  
+  If (Me.m_proxyId == b2Pair.b2_nullProxy)
+    Me.m_body.Freeze()
+  Endif
+  
+End
+
+Public Sub Synchronize(position1 As Variant, R1 As Variant, position2 As Variant, R2 As Variant) As Variant ''funcion
+  
+  Dim p1X As Variant = position1.x + (R1.col1.x * Me.m_localPosition.x + R1.col2.x * Me.m_localPosition.y)
+  Dim p1Y As Variant = position1.y + (R1.col1.y * Me.m_localPosition.x + R1.col2.y * Me.m_localPosition.y)
+  ' // b2Vec2 lower = b2Min(p1, me.m_position)
+  Dim lowerX As Variant = Math.min(p1X, Me.m_position.x)
+  Dim lowerY As Variant = Math.min(p1Y, Me.m_position.y)
+  ' // b2Vec2 upper = b2Max(p1, me.m_position)
+  Dim upperX As Variant = Math.max(p1X, Me.m_position.x)
+  Dim upperY As Variant = Math.max(p1Y, Me.m_position.y)
+  Dim aabb As Variant = New B2AABB()
+  Dim broadPhase As Variant = Me.m_body.m_world.m_broadPhase
+  
+  Me.m_R.SetM(R2)
+  ' // me.m_position = position2 + b2Mul(R2, me.m_localPosition)
+  Me.m_position.x = (R2.col1.x * Me.m_localPosition.x + R2.col2.x * Me.m_localPosition.y) + position2.x
+  Me.m_position.y = (R2.col1.y * Me.m_localPosition.x + R2.col2.y * Me.m_localPosition.y) + position2.y
+  If (Me.m_proxyId = b2Pair.b2_nullProxy)
+    Return
+  Endif
+  '' TODO: posible funcion (revisar)
+  
+  ' //  Compute an AABB that covers the swept shape (may miss some rotation effect).
+  ' // b2Vec2 p1 = position1 + b2Mul(R1, me.m_localPosition)
+  
+  aabb.minVertex.Set(lowerX - Me.m_radius, lowerY - Me.m_radius)
+  aabb.maxVertex.Set(upperX + Me.m_radius, upperY + Me.m_radius)
+  
+  If (broadPhase.InRange(aabb)) Then
+    broadPhase.MoveProxy(Me.m_proxyId, aabb)
+  Else
+    Me.m_body.Freeze()
+  Endif
+  
+End
+
+Public Sub QuickSync(position As Variant, R As Variant)
+  
+  Me.m_R.SetM(R)
+  ' // me.m_position = position + b2Mul(R, me.m_localPosition)
+  Me.m_position.x = (R.col1.x * Me.m_localPosition.x + R.col2.x * Me.m_localPosition.y) + position.x
+  Me.m_position.y = (R.col1.y * Me.m_localPosition.x + R.col2.y * Me.m_localPosition.y) + position.y
+  
+End
+
+Public Sub ResetProxy(broadPhase As Variant) 
+  
+  Dim proxy As Variant = broadPhase.GetProxy(Me.m_proxyId)
+  Dim aabb As Variant = New B2AABB()
+  
+  If (Me.m_proxyId == b2Pair.b2_nullProxy) Then 
+    Return
+  Endif
+  
+  broadPhase.DestroyProxy(Me.m_proxyId)
+  proxy = Null
+  
+  aabb.minVertex.Set(Me.m_position.x - Me.m_radius, Me.m_position.y - Me.m_radius)
+  aabb.maxVertex.Set(Me.m_position.x + Me.m_radius, Me.m_position.y + Me.m_radius)
+  If (broadPhase.InRange(aabb)) Then 
+    Me.m_proxyId = broadPhase.CreateProxy(aabb, this)
+  Else
+    Me.m_proxyId = b2Pair.b2_nullProxy
+  Endif
+  
+  If (Me.m_proxyId == b2Pair.b2_nullProxy) Then 
+    Me.m_body.Freeze()
+  Endif
+  
+End
+
+Public Sub Support(dX As Variant, dY As Variant, out As Variant) As Variant ''funcion
+  ' // b2Vec2 u = d
+  ' // u.Normalize()
+  
+  Dim leng As Variant = Math.sqrt(dX * dX + dY * dY)
+  
+  dX = dx / leng
+  dY = dy / leng
+  ' // return me.m_position + me.m_radius * u
+  '' TODO: posible funcion (revisar)
+  
+  out.Set(Me.m_position.x + Me.m_radius * dX, Me.m_position.y + Me.m_radius * dY)
+  ' //  Local position in parent body
+  
+End

@@ -1,0 +1,39 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+you must Not   
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+  Public localAnchor1 As New B2Vec2()
+Public localAnchor2 As New B2Vec2()
+Public normalImpulse As Variant = Null
+Public tangentImpulse As Variant = Null
+Public positionImpulse As Variant = Null
+Public normalMass As Variant = Null
+Public tangentMass As Variant = Null
+Public separation As Variant = Null
+Public velocityBias As Variant = Null
+
+Public Sub _new()
+  
+  ' //  initialize instance variables for references
+  Me.localAnchor1 = New B2Vec2()
+  Me.localAnchor2 = New B2Vec2()
+  ' // 
+  
+End

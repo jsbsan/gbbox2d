@@ -1,0 +1,277 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not   
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  p = attached point, m = mouse point
+' //  C = p - m
+' //  Cdot = v
+' //       = v + cross(w, r)
+' //  J = [I r_skew]
+' //  Identity used:
+' //  w k % (rx i + ry j) = w * (-ry i + rx j)
+
+Inherits B2Joint
+
+' //  Presolve vars
+Public K As New B2Mat22()
+Public k1 As New B2Mat22()
+Public k2 As New B2Mat22()
+
+Public m_localAnchor As Variant = New B2Vec2()
+Public m_target As Variant = New B2Vec2()
+Public m_impulse As Variant = New B2Vec2()
+Public m_ptpMass As Variant = New B2Mat22()
+Public m_C As Variant = New B2Vec2()
+Public m_maxForce As Variant = Null
+Public m_beta As Variant = Null
+Public m_gamma As Variant = Null
+
+Public Sub GetAnchor1() As Variant ''funcion
+  
+  Return Me.m_target
+  
+End
+
+Public Sub GetAnchor2() As Variant ''funcion
+  
+  Dim tVec As Variant = b2Math.b2MulMV(Me.m_body2.m_R, Me.m_localAnchor)
+
+  tVec.Add(Me.m_body2.m_position)
+  Return tVec
+  
+End
+
+Public Sub GetReactionForce(invTimeStep As Variant) As Variant ''funcion
+  ' // b2Vec2 F = invTimeStep * me.m_impulse
+  
+  Dim F As Variant = New B2Vec2()
+  
+  F.SetV(Me.m_impulse)
+  F.Multiply(invTimeStep)
+  Return F
+  
+End
+
+Public Sub GetReactionTorque(invTimeStep As Variant) As Variant ''funcion
+  
+  Return 0.0
+  
+End
+
+Public Sub SetTarget(target As Variant)
+  
+  Me.m_body2.WakeUp()
+  Me.m_target = target
+  
+End
+
+' // --------------- Internals Below -------------------
+Public Sub initialize(def As Variant)
+  
+  Dim tX As Variant 
+  Dim tY As Variant 
+  
+  Dim mass As Variant 
+  Dim omega As Variant 
+  Dim d As Variant 
+  Dim k As Variant
+  ' //  The constructor for b2Joint
+  ' //  initialize instance variables for references
+  Me.m_node1 = New B2JointNode()
+  Me.m_node2 = New B2JointNode()
+  ' // 
+  Me.m_type = def.type
+  Me.m_prev = Null
+  Me.m_next = Null
+  Me.m_body1 = def.body1
+  Me.m_body2 = def.body2
+  Me.m_collideConnected = def.collideConnected
+  Me.m_islandFlag = False
+  Me.m_userData = def.userData
+  ' // 
+  ' //  initialize instance variables for references
+  Me.K = New B2Mat22()
+  Me.K1 = New B2Mat22()
+  Me.K2 = New B2Mat22()
+  Me.m_localAnchor = New B2Vec2()
+  Me.m_target = New B2Vec2()
+  Me.m_impulse = New B2Vec2()
+  Me.m_ptpMass = New B2Mat22()
+  Me.m_C = New B2Vec2()
+  ' // 
+  ' // super(def)
+  Me.m_target.SetV(def.target)
+  ' // me.m_localAnchor = b2Math.b2MulTMV( me.m_body2.m_R, b2Math.SubtractVV( me.m_target, me.m_body2.m_position ) )
+  tX = Me.m_target.x - Me.m_body2.m_position.x
+  
+  tY = Me.m_target.y - Me.m_body2.m_position.y
+  
+  Me.m_localAnchor.x = (tX * Me.m_body2.m_R.col1.x + tY * Me.m_body2.m_R.col1.y)
+  Me.m_localAnchor.y = (tX * Me.m_body2.m_R.col2.x + tY * Me.m_body2.m_R.col2.y)
+  Me.m_maxForce = def.maxForce
+  Me.m_impulse.SetZero()
+  mass = Me.m_body2.m_mass
+  
+  ' //  Frequency
+  omega = 2.0 * b2Settings.b2_pi * def.frequencyHz
+  
+  ' //  Damping coefficient
+  d = 2.0 * mass * def.dampingRatio * omega
+  
+  ' //  Spring stiffness
+  k = mass * omega * omega
+  
+  ' //  magic formulas
+  Me.m_gamma = 1.0 / (d + def.timeStep * k)
+  Me.m_beta = def.timeStep * k / (d + def.timeStep * k)
+  
+End 
+
+Public Sub PrepareVelocitySolver()
+  
+  Dim b As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  
+  Dim rX As Variant = tMat.col1.x * Me.m_localAnchor.x + tMat.col2.x * Me.m_localAnchor.y
+  
+  Dim rY As Variant = tMat.col1.y * Me.m_localAnchor.x + tMat.col2.y * Me.m_localAnchor.y
+  
+  ' //  me.K    = [(1/m1 + 1/m2) * eye(2) - skew(r1) * invI1 * skew(r1) - skew(r2) * invI2 * skew(r2)]
+  ' //       = [1/m1+1/m2     0    ] + invI1 * [r1.y*r1.y -r1.x*r1.y] + invI2 * [r1.y*r1.y -r1.x*r1.y]
+  ' //         [    0     1/m1+1/m2]           [-r1.x*r1.y r1.x*r1.x]           [-r1.x*r1.y r1.x*r1.x]
+  Dim invMass As Variant = b.m_invMass
+  
+  Dim invI As Variant = b.m_invI
+  
+  Dim PX As Variant 
+  
+  Dim PY As Variant 
+  
+  ' //  Compute the effective mass matrix.
+  ' // b2Vec2 r = b2Mul(b.m_R, me.m_localAnchor)
+  tMat = b.m_R
+  
+  ' // b2Mat22 me.K1
+  Me.K1.col1.x = invMass
+  Me.K1.col2.x = 0.0
+  Me.K1.col1.y = 0.0
+  Me.K1.col2.y = invMass
+  ' // b2Mat22 me.K2
+  Me.K2.col1.x = invI * rY * rY
+  Me.K2.col2.x = - invI * rX * rY
+  Me.K2.col1.y = - invI * rX * rY
+  Me.K2.col2.y = invI * rX * rX
+  ' // b2Mat22 me.K = me.K1 + me.K2
+  Me.K.SetM(Me.K1)
+  Me.K.AddM(Me.K2)
+  Me.K.col1.x += Me.m_gamma
+  Me.K.col2.y += Me.m_gamma
+  ' // me.m_ptpMass = me.K.Invert()
+  Me.K.Invert(Me.m_ptpMass)
+  ' // me.m_C = b.m_position + r - me.m_target
+  Me.m_C.x = b.m_position.x + rX - Me.m_target.x
+  Me.m_C.y = b.m_position.y + rY - Me.m_target.y
+  ' //  Cheat with some damping
+  b.m_angularVelocity *= 0.98
+  ' //  Warm starting.
+  ' // b2Vec2 P = me.m_impulse
+  PX = Me.m_impulse.x
+  
+  PY = Me.m_impulse.y
+  
+  ' // b.m_linearVelocity += invMass * P
+  b.m_linearVelocity.x += invMass * PX
+  b.m_linearVelocity.y += invMass * PY
+  ' // b.m_angularVelocity += invI * b2Cross(r, P)
+  b.m_angularVelocity += invI * (rX * PY - rY * PX)
+  
+End
+
+Public Sub SolveVelocityConstraints( Step As Variant)
+  
+  Dim body As Variant = Me.m_body2
+  
+  Dim tMat As Variant
+  ' //  Compute the effective mass matrix.
+  ' // b2Vec2 r = b2Mul(body.m_R, me.m_localAnchor)
+  
+  Dim rX As Variant 
+  
+  Dim rY As Variant 
+  
+  ' //  Cdot = v + cross(w, r)
+  ' // b2Vec2 Cdot = body->m_linearVelocity + b2Cross(body->m_angularVelocity, r)
+  Dim CdotX As Variant 
+  
+  Dim CdotY As Variant
+  
+  Dim tX As Variant
+  Dim tY As Variant
+  Dim impulseX As Variant
+  Dim impulseY As Variant
+  Dim oldImpulseX As Variant
+  Dim oldImpulseY As Variant
+  Dim length As Variant
+  
+  tMat = body.m_R
+  
+  rX = tMat.col1.x * Me.m_localAnchor.x + tMat.col2.x * Me.m_localAnchor.y
+  
+  rY = tMat.col1.y * Me.m_localAnchor.x + tMat.col2.y * Me.m_localAnchor.y
+  
+  ' // b2Vec2 impulse = -b2Mul( me.m_ptpMass, Cdot + ( me.m_beta * step->inv_dt) * me.m_C + me.m_gamma * me.m_impulse)
+  tMat = Me.m_ptpMass
+  tX = CdotX + (Me.m_beta * step.inv_dt) * Me.m_C.x + Me.m_gamma * Me.m_impulse.x
+  
+  tY = CdotY + (Me.m_beta * step.inv_dt) * Me.m_C.y + Me.m_gamma * Me.m_impulse.y
+  
+  impulseX = - (tMat.col1.x * tX + tMat.col2.x * tY)
+  
+  impulseY = - (tMat.col1.y * tX + tMat.col2.y * tY)
+  
+  oldImpulseX = Me.m_impulse.x
+  
+  oldImpulseY = Me.m_impulse.y
+  
+  ' // me.m_impulse += impulse
+  Me.m_impulse.x += impulseX
+  Me.m_impulse.y += impulseY
+  length = Me.m_impulse.Length()
+  
+  If (length > step.dt * Me.m_maxForce) Then 
+    ' // me.m_impulse *= step.dt * me.m_maxForce / length
+    Me.m_impulse.Multiply(step.dt * Me.m_maxForce / length)
+  Endif
+  
+  ' // impulse = me.m_impulse - oldImpulse
+  impulseX = Me.m_impulse.x - oldImpulseX
+  impulseY = Me.m_impulse.y - oldImpulseY
+  ' // body.m_linearVelocity += body->m_invMass * impulse
+  body.m_linearVelocity.x += body.m_invMass * impulseX
+  body.m_linearVelocity.y += body.m_invMass * impulseY
+  ' // body.m_angularVelocity += body->m_invI * b2Cross(r, impulse)
+  body.m_angularVelocity += body.m_invI * (rX * impulseY - rY * impulseX)
+  
+End
+
+Public Sub SolvePositionConstraints() As Variant ''funcion
+  
+  Return True
+  
+End

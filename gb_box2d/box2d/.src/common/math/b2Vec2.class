@@ -1,0 +1,191 @@
+' Gambas class file
+
+'gambas class'
+'b2Vec2'
+
+﻿' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' b2Vec2 has no constructor so that it
+' can be placed in a union.
+
+Public x As Float
+Public y As Float
+
+Public Sub _new(x As Flot, y As Float)
+  
+  Me.initialize(x, y)
+  
+End
+
+Public Sub initialize(x As Float, y As Float)
+  
+  Me.x = x
+  Me.y = y
+  
+End
+
+Public Sub SetZero()
+  
+  Me.x = 0
+  Me.y = 0
+  
+End
+
+Public Sub Set(x As Float, y As Float)
+  
+  Me.x = x
+  Me.y = y
+  
+End
+
+Public Sub SetV(v As B2Vec2)
+  
+  Me.x = v.x
+  Me.y = v.y
+  
+End
+
+Public Function Negative() As B2Vec2
+  
+  Return New B2Vec2(- Me.x, - Me.y)
+  
+End
+
+Public Function copy() As B2Vec2
+  
+  Return New B2Vec2(Me.x, Me.y)
+  
+End
+
+Public Sub add(v As B2Vec2)
+  
+  Me.x += v.x
+  Me.y += v.y
+  
+End
+
+Public Sub Subtract(v As B2Vec2)
+  
+  Me.x -= v.x
+  Me.y -= v.y
+  
+End
+
+Public Sub Multiply(a As Float)
+  
+  Me.x *= a
+  Me.y *= a
+  
+End
+
+Public Sub MulM(A As Variant)
+  
+  Dim tx As Float
+
+  tX = Me.x
+  Me.x = A.col1.x * tX + A.col2.x * Me.y
+  Me.y = A.col1.y * tX + A.col2.y * Me.y
+  
+End
+
+Public Sub MulTM(A As Variant)
+  
+  Dim tx As Float
+
+  tX = b2Math.b2Dot(Me, A.col1)
+  Me.y = b2Math.b2Dot(Me, A.col2)
+  Me.x = tX
+  
+End
+
+Public Sub CrossVF(s As Float)
+  
+  Dim tx As Float
+
+  tX = Me.x
+  Me.x = s * Me.y
+  Me.y = - s * tX
+  
+End
+
+Public Sub CrossFV(s As Float)
+  
+  Dim tx As Float
+
+  tX = Me.x
+  Me.x = - s * Me.y
+  Me.y = s * tX
+  
+End
+
+Public Sub MinV(b As Variant)
+  
+  Me.x = Min(Me.x, b.x)
+  Me.y = Min(Me.y, b.y)
+  
+End
+
+Public Sub MaxV(b As Variant)
+  
+  Me.x = Max(Me.x, b.x)
+  Me.y = Max(Me.y, b.y)
+  
+End
+
+Public Sub Abs()
+  
+  Me.x = Abs(Me.x)
+  Me.y = Abs(Me.y)
+  
+End
+
+Public Function length() As Float
+  
+  Return sqrt(Me.x * Me.x + Me.y * Me.y)
+  
+End
+
+Public Function Normalize() As Float
+  
+  Dim length As Float = Me.Length()
+  Dim invLength As Float
+  
+  If (length < -8.98846567431105E+307) Then 
+    Return 0.0
+  Endif
+  
+  invLength = 1.0 / length
+  
+  Me.x *= invLength
+  Me.y *= invLength
+  Return length
+  
+End
+
+Public Function Isvalid() As Variant
+  
+  Return (b2Math.b2IsValid(Me.x) And b2Math.b2IsValid(Me.y)
+  
+End
+
+Public Function make(x As Variant, y As Variant) As Variant
+  
+  Return New B2vec2(x, y)
+  
+End

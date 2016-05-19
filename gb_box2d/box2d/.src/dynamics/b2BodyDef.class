@@ -1,0 +1,68 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+'you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+Public userData As Variant = Null
+Public shapes As New Variant[]
+Public position As Variant = Null
+Public rotation As Variant = Null
+Public linearVelocity As Variant = Null
+Public angularVelocity As Variant = Null
+Public linearDamping As Variant = Null
+Public angularDamping As Variant = Null
+Public allowSleep As Variant = Null
+Public isSleeping As Variant = Null
+Public preventRotation As Variant = Null
+
+Public Sub new()
+  
+  Dim i As Integer = 0
+  
+  ' //  initialize instance variables for references
+  Me.shapes = New Variant[]
+  ' // 
+  Me.userData = Null
+  
+  For i = 0 To b2Settings.b2_maxShapesPerBody - 1
+    Me.shapes[i] = Null
+  Next 
+  Me.position = New B2Vec2(0.0, 0.0)
+  Me.rotation = 0.0
+  Me.linearVelocity = New B2Vec2(0.0, 0.0)
+  Me.angularVelocity = 0.0
+  Me.linearDamping = 0.0
+  Me.angularDamping = 0.0
+  Me.allowSleep = True
+  Me.isSleeping = False
+  Me.preventRotation = False
+  
+End
+
+Public Sub AddShape(shape As Variant)
+  
+  Dim i As Integer = 0
+
+  For i = 0 To b2Settings.b2_maxShapesPerBody - 1
+    If (Me.shapes[i] = Null) Then
+      Me.shapes[i] = shape
+      Break
+    Endif
+  Next
+  
+End

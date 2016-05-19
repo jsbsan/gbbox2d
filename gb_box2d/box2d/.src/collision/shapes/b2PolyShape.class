@@ -1,0 +1,524 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  A convex polygon. The position of the polygon (m_position) is the
+' //  position of the centroid. The vertices of the incoming polygon are pre-rotated
+' //  according to the local rotation. The vertices are also shifted to be centered
+' //  on the centroid. Since the local rotation is absorbed into the vertex
+' //  coordinates, the polygon rotation is equal to the body rotation. However
+' //  the polygon position is centered on the polygon centroid. This simplifies
+' //  some collision algorithms.
+
+Inherits B2Shape
+
+' //  Local position of the shape centroid in parent body frame.
+Public m_localCentroid As New B2Vec2()
+' //  Local position oriented bounding box. The OBB center is relative to
+' //  shape centroid.
+Public m_localOBB As New 2 OBB()
+Public m_vertices As Variant
+Public m_coreVertices As Variant
+Public m_vertexCount As Integer = 0
+Public m_normals As Variant
+
+Public b2PolyShape.tempVec As New B2Vec2()
+Public b2PolyShape.tAbsR As New B2Mat22()
+
+Public Sub TestPoint(p As Variant) As Boolean  
+  ' // var pLocal = b2Math.b2MulTMV( me.m_R, b2Math.SubtractVV(p, me.m_position))
+  
+  Dim pLocal As New B2Vec2()
+  Dim i As Integer
+  
+  Dim tVec As New B2Vec2()
+  Dim dot As Float
+  
+  pLocal.SetV(p)
+  pLocal.Subtract(Me.m_position)
+  pLocal.MulTM(Me.m_R)
+  
+  For i = 0 To Me.m_vertexCount
+    ' // var dot = b2Math.b2Dot( me.m_normals[i], b2Math.SubtractVV(pLocal, me.m_vertices[i]))
+    tVec = New B2Vec2()
+    
+    tVec.SetV(pLocal)
+    tVec.Subtract(Me.m_vertices[i])
+    dot = b2Math.b2Dot(Me.m_normals[i], tVec)
+    
+    If (dot > 0.0) Then 
+      Return False
+    Else 
+      Return True
+    Endif
+    
+End
+
+' // --------------- Internals Below -------------------
+' //  Temp vec for b2Shape.PolyCentroid
+
+Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
+  
+  Dim i As Variant = 0
+  Dim hX As Variant
+  Dim hY As Variant
+  Dim tVec As Variant
+  Dim aabb As New B2AABB()
+  Dim localR As Variant
+  
+  Dim me.m_vertices As New Variant[]
+  Dim me.m_coreVertices As New Variant[]
+  Dim me.m_normals As New Variant[]
+  
+  Dim box As Variant
+  Dim hcX As Variant  
+  Dim hcY As Variant 
+  
+  Dim centroidX As Variant
+  Dim centroidY As Variant 
+  Dim i As Integer
+  
+  Dim uX As Variant
+  Dim uY As Variant
+  Dim length As Variant
+  
+  Dim minVertexX As Float
+  
+  Dim minVertexY As Float
+  
+  Dim maxVertexX As Float
+  
+  Dim maxVertexY As Float
+  
+  Dim v As Variant 
+  
+  Dim i1 As Float = 0
+  
+  Dim i2 As Float = 0
+  
+  Dim positionX As Variant 
+  
+  Dim positionY As Variant
+  
+  ' // for (i = 0; i < b2Settings.b2_maxPolyVertices; i++)
+  ' // 	 me.m_vertices[i] = new b2Vec2()
+  ' //  Normals
+  
+  ' //  initialize instance variables for references
+  Me.m_R = New B2Mat22()
+  Me.m_position = New B2Vec2()
+  ' // 
+  ' //  The constructor for b2Shape
+  Me.m_userData = def.userData
+  Me.m_friction = def.friction
+  Me.m_restitution = def.restitution
+  Me.m_body = body
+  Me.m_proxyId = b2Pair.b2_nullProxy
+  Me.m_maxRadius = 0.0
+  Me.m_categoryBits = def.categoryBits
+  Me.m_maskBits = def.maskBits
+  Me.m_groupIndex = def.groupIndex
+  ' // 
+  ' //  initialize instance variables for references
+  Me.syncAABB = New B2AABB()
+  Me.syncMat = New B2Mat22()
+  Me.m_localCentroid = New B2Vec2()
+  Me.m_localOBB = New B2OBB()
+  ' // 
+  ' // super(def, body)
+  ' //  Vertices
+  Me.m_vertices = New Variant[b2Settings.b2_maxPolyVertices]
+  Me.m_coreVertices = New Variant[b2Settings.b2_maxPolyVertices]
+  ' // for (i = 0; i < b2Settings.b2_maxPolyVertices; i++)
+  ' // 	 me.m_vertices[i] = new b2Vec2()
+  ' //  Normals
+  Me.m_normals = New Variant[(b2Settings.b2_maxPolyVertices]
+  ' // for (i = 0; i < b2Settings.b2_maxPolyVertices; i++)
+  ' // 	 me.m_normals[i] = new b2Vec2()
+  ' // b2Settings.b2Assert(def.type == b2Shape.e_boxShape || def.type == b2Shape.e_polyShape)
+  Me.m_type = b2Shape.e_polyShape
+  localR = New B2Mat22(def.localRotation)
+  
+  ' //  Get the vertices transformed into the body frame.
+  If (def.type = b2Shape.e_boxShape) Then 
+    ' // me.m_localCentroid = def.localPosition - newOrigin
+    Me.m_localCentroid.x = def.localPosition.x - newOrigin.x
+    Me.m_localCentroid.y = def.localPosition.y - newOrigin.y
+    box = def
+    Me.m_vertexCount = 4
+    hX = box.extents.x
+    hY = box.extents.y
+    ' // hc.x = b2Max(0.0f, h.x - 2.0f * b2_linearSlop)
+    
+    hcX = Math.max(0.0, hX - 2.0 * b2Settings.b2_linearSlop)
+    
+    ' // hc.y = b2Max(0.0f, h.y - 2.0f * b2_linearSlop)
+    
+    hcY = Math.max(0.0, hY - 2.0 * b2Settings.b2_linearSlop)
+    
+    ' // me.m_vertices[0] = b2Mul(localR, b2Vec2(h.x, h.y))
+    tVec = (Me.m_vertices[0] = New B2Vec2())
+    tVec.x = localR.col1.x * hX + localR.col2.x * hY
+    tVec.y = localR.col1.y * hX + localR.col2.y * hY
+    ' // me.m_vertices[1] = b2Mul(localR, b2Vec2(-h.x, h.y))
+    tVec = Me.m_vertices[1] = New B2Vec2()
+    tVec.x = localR.col1.x * - hX + localR.col2.x * hY
+    tVec.y = localR.col1.y * - hX + localR.col2.y * hY
+    ' // me.m_vertices[2] = b2Mul(localR, b2Vec2(-h.x, -h.y))
+    tVec = Me.m_vertices[2] = New B2Vec2()
+    tVec.x = localR.col1.x * - hX + localR.col2.x * - hY
+    tVec.y = localR.col1.y * - hX + localR.col2.y * - hY
+    ' // me.m_vertices[3] = b2Mul(localR, b2Vec2(h.x, -h.y))
+    tVec = Me.m_vertices[3] = New B2Vec2()
+    tVec.x = localR.col1.x * hX + localR.col2.x * - hY
+    tVec.y = localR.col1.y * hX + localR.col2.y * - hY
+    ' // me.m_coreVertices[0] = b2Mul(localR, b2Vec2(hc.x, hc.y))
+    tVec = Me.m_coreVertices[0] = New B2Vec2()
+    tVec.x = localR.col1.x * hcX + localR.col2.x * hcY
+    tVec.y = localR.col1.y * hcX + localR.col2.y * hcY
+    ' // me.m_coreVertices[1] = b2Mul(localR, b2Vec2(-hc.x, hc.y))
+    tVec = Me.m_coreVertices[1] = New B2Vec2()
+    tVec.x = localR.col1.x * - hcX + localR.col2.x * hcY
+    tVec.y = localR.col1.y * - hcX + localR.col2.y * hcY
+    ' // me.m_coreVertices[2] = b2Mul(localR, b2Vec2(-hc.x, -hc.y))
+    tVec = Me.m_coreVertices[2] = New B2Vec2()
+    tVec.x = localR.col1.x * - hcX + localR.col2.x * - hcY
+    tVec.y = localR.col1.y * - hcX + localR.col2.y * - hcY
+    ' // me.m_coreVertices[3] = b2Mul(localR, b2Vec2(hc.x, -hc.y))
+    tVec = Me.m_coreVertices[3] = New B2Vec2()
+    tVec.x = localR.col1.x * hcX + localR.col2.x * - hcY
+    tVec.y = localR.col1.y * hcX + localR.col2.y * - hcY
+  Else
+    poly = def
+    
+    Me.m_vertexCount = poly.vertexCount
+    ' // b2Settings.b2Assert(3 <= me.m_vertexCount && me.m_vertexCount <= b2Settings.b2_maxPolyVertices)
+    ' // b2Vec2 centroid = b2Shape.PolyCentroid(poly->vertices, poly->vertexCount)
+    b2Shape.PolyCentroid(poly.vertices, poly.vertexCount, b2PolyShape.tempVec)
+    centroidX = b2PolyShape.tempVec.x
+    centroidY = b2PolyShape.tempVec.y
+    
+    ' // me.m_localCentroid = def->localPosition + b2Mul(localR, centroid) - newOrigin
+    Me.m_localCentroid.x = def.localPosition.x + (localR.col1.x * centroidX + localR.col2.x * centroidY) - newOrigin.x
+    Me.m_localCentroid.y = def.localPosition.y + (localR.col1.y * centroidX + localR.col2.y * centroidY) - newOrigin.y
+    
+    For i = 0 To Me.m_vertexCount
+      
+      Me.m_vertices[i] = New B2Vec2()
+      Me.m_coreVertices[i] = New B2Vec2()
+      ' // me.m_vertices[i] = b2Mul(localR, poly->vertices[i] - centroid)
+      hX = poly.vertices[i].x - centroidX
+      hY = poly.vertices[i].y - centroidY
+      Me.m_vertices[i].x = localR.col1.x * hX + localR.col2.x * hY
+      Me.m_vertices[i].y = localR.col1.y * hX + localR.col2.y * hY
+      ' // b2Vec2 u = me.m_vertices[i]
+      uX = Me.m_vertices[i].x
+      
+      uY = Me.m_vertices[i].y
+      
+      ' // float32 length = u.Length()
+      length = sqrt(uX * uX + uY * uY)
+      
+      If (length > Number.MIN_VALUE) Then 
+        uX = uX * 1.0 / length
+        uY = uY * 1.0 / length
+      Endif
+      
+      ' // me.m_coreVertices[i] = me.m_vertices[i] - 2.0f * b2_linearSlop * u
+      Me.m_coreVertices[i].x = Me.m_vertices[i].x - 2.0 * b2Settings.b2_linearSlop * uX
+      Me.m_coreVertices[i].y = Me.m_vertices[i].y - 2.0 * b2Settings.b2_linearSlop * uY
+      
+    Next
+  Endif
+  
+  ' //  Compute bounding box. TODO_ERIN optimize OBB
+  ' // var minVertex = new b2Vec2(Number.MAX_VALUE, Number.MAX_VALUE)
+  
+  Me.m_maxRadius = 0.0
+  
+  For i = 0 To Me.m_vertexCount
+    v = Me.m_vertices[i]
+    
+    ' // minVertex = b2Math.b2MinV(minVertex, me.m_vertices[i])
+    minVertexX = Math.min(minVertexX, v.x)
+    minVertexY = Math.min(minVertexY, v.y)
+    ' // maxVertex = b2Math.b2MaxV(maxVertex, me.m_vertices[i])
+    maxVertexX = Math.max(maxVertexX, v.x)
+    maxVertexY = Math.max(maxVertexY, v.y)
+    ' // me.m_maxRadius = b2Max( me.m_maxRadius, v.Length())
+    Me.m_maxRadius = Math.max(Me.m_maxRadius, v.Length())
+  Next
+  
+  Me.m_localOBB.R.SetIdentity()
+  ' // me.m_localOBB.center = 0.5 * (minVertex + maxVertex)
+  Me.m_localOBB.center.Set((minVertexX + maxVertexX) * 0.5, (minVertexY + maxVertexY) * 0.5)
+  ' // me.m_localOBB.extents = 0.5 * (maxVertex - minVertex)
+  Me.m_localOBB.extents.Set((maxVertexX - minVertexX) * 0.5, (maxVertexY - minVertexY) * 0.5)
+  
+  ' //  Compute the edge normals and next index map.
+  i1 = 0
+  
+  i2 = 0
+  
+  For i = 0 To Me.m_vertexCount
+    Me.m_normals[i] = New B2Vec2()
+    i1 = i
+    i2 = If(i + 1 < Me.m_vertexCount, i + 1, 0)
+    ' // b2Vec2 edge = me.m_vertices[i2] - me.m_vertices[i1]
+    ' // var edgeX = me.m_vertices[i2].x - me.m_vertices[i1].x
+    ' // var edgeY = me.m_vertices[i2].y - me.m_vertices[i1].y
+    ' // me.m_normals[i] = b2Cross(edge, 1.0f)
+    Me.m_normals[i].x = Me.m_vertices[i2].y - Me.m_vertices[i1].y
+    Me.m_normals[i].y = - (Me.m_vertices[i2].x - Me.m_vertices[i1].x)
+    Me.m_normals[i].Normalize()
+  Next
+  
+  ' //  Ensure the polygon in convex. TODO_ERIN compute convex hull.
+  For i = 0 To Me.m_vertexCount
+    i1 = i
+    i2 = If(i + 1 < Me.m_vertexCount, i + 1, 0)
+  Next
+  
+  ' // b2Settings.b2Assert(b2Math.b2CrossVV( me.m_normals[i1], me.m_normals[i2]) > Number.MIN_VALUE)
+  Me.m_R.SetM(Me.m_body.m_R)
+  ' // me.m_position.SetV( me.m_body.m_position  + b2Mul( me.m_body-> me.m_R, me.m_localCentroid) )
+  Me.m_position.x = Me.m_body.m_position.x + (Me.m_R.col1.x * Me.m_localCentroid.x + Me.m_R.col2.x * Me.m_localCentroid.y)
+  Me.m_position.y = Me.m_body.m_position.y + (Me.m_R.col1.y * Me.m_localCentroid.x + Me.m_R.col2.y * Me.m_localCentroid.y)
+  ' // var R = b2Math.b2MulMM( me.m_R, me.m_localOBB.R)
+  ' // R.col1 = b2MulMV( me.m_R, me.m_localOBB.R.col1)
+  b2PolyShape.tAbsR.col1.x = Me.m_R.col1.x * Me.m_localOBB.R.col1.x + Me.m_R.col2.x * Me.m_localOBB.R.col1.y
+  b2PolyShape.tAbsR.col1.y = Me.m_R.col1.y * Me.m_localOBB.R.col1.x + Me.m_R.col2.y * Me.m_localOBB.R.col1.y
+  ' // R.col2 = b2MulMV( me.m_R, me.m_localOBB.R.col2)
+  b2PolyShape.tAbsR.col2.x = Me.m_R.col1.x * Me.m_localOBB.R.col2.x + Me.m_R.col2.x * Me.m_localOBB.R.col2.y
+  b2PolyShape.tAbsR.col2.y = Me.m_R.col1.y * Me.m_localOBB.R.col2.x + Me.m_R.col2.y * Me.m_localOBB.R.col2.y
+  ' // var absR = b2Math.b2AbsM(R)
+  b2PolyShape.tAbsR.Abs()
+  ' // h = b2Math.b2MulMV(b2PolyShape.tAbsR, me.m_localOBB.extents)
+  hX = b2PolyShape.tAbsR.col1.x * Me.m_localOBB.extents.x + b2PolyShape.tAbsR.col2.x * Me.m_localOBB.extents.y
+  hY = b2PolyShape.tAbsR.col1.y * Me.m_localOBB.extents.x + b2PolyShape.tAbsR.col2.y * Me.m_localOBB.extents.y
+  ' // var position = me.m_position + b2Mul( me.m_R, me.m_localOBB.center)
+  positionX = Me.m_position.x + (Me.m_R.col1.x * Me.m_localOBB.center.x + Me.m_R.col2.x * Me.m_localOBB.center.y)
+  
+  positionY = Me.m_position.y + (Me.m_R.col1.y * Me.m_localOBB.center.x + Me.m_R.col2.y * Me.m_localOBB.center.y)
+  
+  ' // aabb.minVertex = b2Math.SubtractVV( me.m_position, h)
+  aabb.minVertex.x = positionX - hX
+  aabb.minVertex.y = positionY - hY
+  ' // aabb.maxVertex = b2Math.AddVV( me.m_position, h)
+  aabb.maxVertex.x = positionX + hX
+  aabb.maxVertex.y = positionY + hY
+  
+  broadPhase = Me.m_body.m_world.m_broadPhase
+  
+  If (broadPhase.InRange(aabb)) Then 
+    Me.m_proxyId = broadPhase.CreateProxy(aabb, this)
+  Else
+    Me.m_proxyId = b2Pair.b2_nullProxy
+  Endif
+  
+  If (Me.m_proxyId = b2Pair.b2_nullProxy) Then Me.m_body.Freeze()
+  
+End
+
+' //  Temp AABB for Synch function
+Public syncAABB As New 2 AABB()
+Public syncMat As New 2 Mat22()
+
+Public Sub Synchronize(position1 As Variant, R1 As Variant, position2 As Variant, R2 As Variant) As Variant ''funcion
+  ' // b2AABB aabb1, aabb2
+  
+  Dim hX As Variant
+  Dim hY As Variant
+  ' // b2Mat22 obbR = b2Mul(R1, me.m_localOBB.R)
+  Dim v1 As Variant = R1.col1
+  
+  Dim v2 As Variant = R1.col2
+  
+  Dim v3 As Variant = Me.m_localOBB.R.col1
+  
+  Dim v4 As Variant = Me.m_localOBB.R.col2
+  
+  Dim centerX As Variant 
+  
+  Dim centerY As Variant 
+  
+  Dim broadPhase As Variant
+  
+  ' //  The body transform is copied for convenience.
+  Me.m_R.SetM(R2)
+  ' // me.m_position = me.m_body-> me.m_position + b2Mul( me.m_body-> me.m_R, me.m_localCentroid)
+  Me.m_position.x = Me.m_body.m_position.x + (R2.col1.x * Me.m_localCentroid.x + R2.col2.x * Me.m_localCentroid.y)
+  Me.m_position.y = Me.m_body.m_position.y + (R2.col1.y * Me.m_localCentroid.x + R2.col2.y * Me.m_localCentroid.y)
+  If (Me.m_proxyId = b2Pair.b2_nullProxy) Then 
+    Return
+  Endif
+  
+  ' // me.syncMat.col1 = b2MulMV(R1, me.m_localOBB.R.col1)
+  Me.syncMat.col1.x = v1.x * v3.x + v2.x * v3.y
+  Me.syncMat.col1.y = v1.y * v3.x + v2.y * v3.y
+  ' // me.syncMat.col2 = b2MulMV(R1, me.m_localOBB.R.col2)
+  Me.syncMat.col2.x = v1.x * v4.x + v2.x * v4.y
+  Me.syncMat.col2.y = v1.y * v4.x + v2.y * v4.y
+  ' // b2Mat22 absR = b2Abs(obbR)
+  Me.syncMat.Abs()
+  ' // b2Vec2 center = position1 + b2Mul(R1, me.m_localCentroid + me.m_localOBB.center)
+  hX = Me.m_localCentroid.x + Me.m_localOBB.center.x
+  hY = Me.m_localCentroid.y + Me.m_localOBB.center.y
+  centerX = position1.x + (R1.col1.x * hX + R1.col2.x * hY)
+  
+  centerY = position1.y + (R1.col1.y * hX + R1.col2.y * hY)
+  
+  ' // b2Vec2 h = b2Mul( me.syncMat, me.m_localOBB.extents)
+  hX = Me.syncMat.col1.x * Me.m_localOBB.extents.x + Me.syncMat.col2.x * Me.m_localOBB.extents.y
+  hY = Me.syncMat.col1.y * Me.m_localOBB.extents.x + Me.syncMat.col2.y * Me.m_localOBB.extents.y
+  ' // aabb1.minVertex = center - h
+  Me.syncAABB.minVertex.x = centerX - hX
+  Me.syncAABB.minVertex.y = centerY - hY
+  ' // aabb1.maxVertex = center + h
+  Me.syncAABB.maxVertex.x = centerX + hX
+  Me.syncAABB.maxVertex.y = centerY + hY
+  ' // b2Mat22 obbR = b2Mul(R2, me.m_localOBB.R)
+  v1 = R2.col1
+  v2 = R2.col2
+  v3 = Me.m_localOBB.R.col1
+  v4 = Me.m_localOBB.R.col2
+  ' // me.syncMat.col1 = b2MulMV(R1, me.m_localOBB.R.col1)
+  Me.syncMat.col1.x = v1.x * v3.x + v2.x * v3.y
+  Me.syncMat.col1.y = v1.y * v3.x + v2.y * v3.y
+  ' // me.syncMat.col2 = b2MulMV(R1, me.m_localOBB.R.col2)
+  Me.syncMat.col2.x = v1.x * v4.x + v2.x * v4.y
+  Me.syncMat.col2.y = v1.y * v4.x + v2.y * v4.y
+  ' // b2Mat22 absR = b2Abs(obbR)
+  Me.syncMat.Abs()
+  ' // b2Vec2 center = position2 + b2Mul(R2, me.m_localCentroid + me.m_localOBB.center)
+  hX = Me.m_localCentroid.x + Me.m_localOBB.center.x
+  hY = Me.m_localCentroid.y + Me.m_localOBB.center.y
+  centerX = position2.x + (R2.col1.x * hX + R2.col2.x * hY)
+  centerY = position2.y + (R2.col1.y * hX + R2.col2.y * hY)
+  ' // b2Vec2 h = b2Mul(absR, me.m_localOBB.extents)
+  hX = Me.syncMat.col1.x * Me.m_localOBB.extents.x + Me.syncMat.col2.x * Me.m_localOBB.extents.y
+  hY = Me.syncMat.col1.y * Me.m_localOBB.extents.x + Me.syncMat.col2.y * Me.m_localOBB.extents.y
+  ' // aabb2.minVertex = center - h
+  ' // aabb2.maxVertex = center + h
+  ' // aabb.minVertex = b2Min(aabb1.minVertex, aabb2.minVertex)
+  Me.syncAABB.minVertex.x = Min(Me.syncAABB.minVertex.x, centerX - hX)
+  Me.syncAABB.minVertex.y = Min(Me.syncAABB.minVertex.y, centerY - hY)
+  ' // aabb.maxVertex = b2Max(aabb1.maxVertex, aabb2.maxVertex)
+  Me.syncAABB.maxVertex.x = Max(Me.syncAABB.maxVertex.x, centerX + hX)
+  Me.syncAABB.maxVertex.y = Max(Me.syncAABB.maxVertex.y, centerY + hY)
+  
+  broadPhase = Me.m_body.m_world.m_broadPhase
+  
+  If (broadPhase.InRange(Me.syncAABB)) Then 
+    broadPhase.MoveProxy(Me.m_proxyId, Me.syncAABB)
+  Else
+    Me.m_body.Freeze()
+  Endif
+  
+End
+
+Public Sub QuickSync(position As Variant, R As Variant)
+  ' // me.m_R = R
+  
+  Me.m_R.SetM(R)
+  ' // me.m_position = position + b2Mul(R, me.m_localCentroid)
+  Me.m_position.x = position.x + (R.col1.x * Me.m_localCentroid.x + R.col2.x * Me.m_localCentroid.y)
+  Me.m_position.y = position.y + (R.col1.y * Me.m_localCentroid.x + R.col2.y * Me.m_localCentroid.y)
+  
+End
+
+Public Sub ResetProxy(broadPhase As Variant) ''funcion
+  
+  Dim proxy As Variant
+  Dim R As Variant 
+  Dim absR As Variant
+  Dim h As Variant
+  
+  Dim position As Variant
+  Dim aabb As Variant 
+  
+  If (Me.m_proxyId = b2Pair.b2_nullProxy) Then 
+    Return
+  Endif
+  
+  proxy = broadPhase.GetProxy(Me.m_proxyId)
+  
+  broadPhase.DestroyProxy(Me.m_proxyId)
+  proxy = Null
+  R = b2Math.b2MulMM(Me.m_R, Me.m_localOBB.R)
+  
+  absR = b2Math.b2AbsM(R)
+  
+  h = b2Math.b2MulMV(absR, Me.m_localOBB.extents)
+  
+  ' // var position = me.m_position + b2Mul( me.m_R, me.m_localOBB.center)
+  position = b2Math.b2MulMV(Me.m_R, Me.m_localOBB.center)
+  
+  position.Add(Me.m_position)
+  
+  aabb = New B2AABB()
+  
+  ' // aabb.minVertex = position - h
+  aabb.minVertex.SetV(position)
+  aabb.minVertex.Subtract(h)
+  ' // aabb.maxVertex = position + h
+  aabb.maxVertex.SetV(position)
+  aabb.maxVertex.Add(h)
+  If (broadPhase.InRange(aabb)) Then
+    Me.m_proxyId = broadPhase.CreateProxy(aabb, this)
+  Else
+    Me.m_proxyId = b2Pair.b2_nullProxy
+  Endif
+  
+  If (Me.m_proxyId = b2Pair.b2_nullProxy) If
+    Me.m_body.Freeze()
+  Endif
+  
+End
+
+Public Sub Support(dX As Variant, dY As Variant, out As Variant) 
+  ' // b2Vec2 dLocal = b2MulT( me.m_R, d)
+  
+  Dim dLocalX As Float = (dX * Me.m_R.col1.x + dY * Me.m_R.col1.y)
+  
+  Dim dLocalY As Float = (dX * Me.m_R.col2.x + dY * Me.m_R.col2.y)
+  
+  Dim bestIndex As Integer = 0
+  
+  ' // float32 bestValue = b2Dot( me.m_vertices[0], dLocal)
+  Dim bestValue As Float = (Me.m_coreVertices[0].x * dLocalX + Me.m_coreVertices[0].y * dLocalY)
+  
+  Dim value As Variant
+  
+  Dim i As Integer
+  
+  For i = 1 To Me.m_vertexCount
+    ' // float32 value = b2Dot( me.m_vertices[i], dLocal)
+    value = (Me.m_coreVertices[i].x * dLocalX + Me.m_coreVertices[i].y * dLocalY)
+    
+    If (value > bestValue) Then
+      bestIndex = i
+      bestValue = value
+    Endif
+    
+    ' // return me.m_position + b2Mul( me.m_R, me.m_vertices[bestIndex])
+    '' TODO: posible funcion (revisar)
+    
+    out.Set(Me.m_position.x + (Me.m_R.col1.x * Me.m_coreVertices[bestIndex].x + Me.m_R.col2.x * Me.m_coreVertices[bestIndex].y), Me.m_position.y + (Me.m_R.col1.y * Me.m_coreVertices[bestIndex].x + Me.m_R.col2.y * Me.m_coreVertices[bestIndex].y))
+    
+End

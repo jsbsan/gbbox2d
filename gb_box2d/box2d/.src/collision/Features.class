@@ -1,0 +1,80 @@
+' Gambas class file
+
+' /* 
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' you must not
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+' //  We use contact ids to facilitate warm starting.
+
+Public _referenceFace As Variant = 0
+Public _incidentEdge As Variant = 0
+Public _incidentVertex As Variant = 0
+
+Public _flip As Variant = 0
+Public _m_id As Variant = Null
+
+Public Sub set_referenceFace(value As Variant)
+  
+  Me._referenceFace = value
+  Me._m_id._key = (Me._m_id._key And 0 xffffff00) Or (Me._referenceFace And 0 x000000ff)
+  
+End
+
+Public Sub get_referenceFace() As Variant ''funcion
+  
+  Return Me._referenceFace
+  
+End
+
+Public Sub set_incidentEdge(value As Variant)
+  
+  Me._incidentEdge = value
+  Me._m_id._key = (Me._m_id._key And 0 xffff00ff) Or ((Me._incidentEdge < < 8) And 0 x0000ff00)
+  
+End
+
+Public Sub get_incidentEdge() As Variant ''funcion
+  
+  Return Me._incidentEdge
+  
+End
+
+Public Sub set_incidentVertex(value As Variant)
+  
+  Me._incidentVertex = value
+  Me._m_id._key = (Me._m_id._key And 0 xff00ffff) Or ((Me._incidentVertex < < 16) And 0 x00ff0000)
+  
+End
+
+Public Sub get_incidentVertex() As Variant ''funcion
+  
+  Return Me._incidentVertex
+  
+End
+
+Public Sub set_flip(value As Variant)
+  
+  Me._flip = value
+  Me._m_id._key = (Me._m_id._key And 0 x00ffffff) Or ((Me._flip < < 24) And 0 xff000000)
+  
+End
+
+Public Sub get_flip() As Variant ''funcion
+  
+  Return Me._flip
+  
+End

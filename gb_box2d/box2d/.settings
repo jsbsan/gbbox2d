@@ -1,0 +1,13 @@
+[Breakpoints]
+Count=0
+
+[OpenFile]
+File[1]=".src/FMain.form"
+File[2]=".src/collision/ClipVertex.class:41.25"
+File[3]=".src/collision/Features.class:60.8"
+File[4]=".src/collision/b2BroadPhase.class:0.2"
+File[5]=".src/collision/b2Distance.class:0.2"
+Active=6
+File[6]=".src/collision/b2PairManager.class:0.2"
+Count=6
+

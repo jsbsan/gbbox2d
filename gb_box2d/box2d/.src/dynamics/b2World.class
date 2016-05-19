@@ -1,0 +1,537 @@
+' Gambas class file
+
+' * Copyright (c) 2006-2007 Erin Catto http:
+' *
+' * This software is provided 'as-is', without any express or implied
+' * warranty.  In no event will the authors be held liable for any damages
+' * arising from the use of this software.
+' * Permission is granted to anyone to use this software for any purpose
+' * including commercial applications, and to alter it and redistribute it
+' * freely, subject to the following restrictions:
+' * 1. The origin of this software must not be misrepresented
+' u must not    
+' * claim that you wrote the original software. If you use this software
+' * in a product, an acknowledgment in the product documentation would be
+' * appreciated but is not required.
+' * 2. Altered source versions must be plainly marked, and must not be
+' * misrepresented the original software.
+' * 3. This notice may not be removed or altered from any source distribution.
+' */
+
+'	//--------------- Internals Below -------------------
+
+Public m_blockAllocator As Variant = Null
+Public m_stackAllocator As Variant = Null
+
+Public m_broadPhase As Variant = Null
+Public m_contactManager As Variant = New B2ContactManager()
+
+Public m_bodyList As Variant = Null
+Public m_contactList As Variant = Null
+Public m_jointList As Variant = Null
+
+Public m_bodyCount As Variant = 0
+Public m_contactCount As Variant = 0
+Public m_jointCount As Variant = 0
+
+'// These bodies will be destroyed at the next time this.step.
+Public m_bodyDestroyList As Variant = Null
+
+Public m_gravity As Variant = Null
+Public m_allowSleep As Variant = Null
+
+Public m_groundBody As Variant = Null
+
+Public m_listener As Variant = Null
+Public m_filter As Variant = Null
+
+Public m_positionIterationCount As Variant = 0
+Public s_enablePositionCorrection As Variant = 1
+Public s_enableWarmStarting As Variant = 1
+
+Public Sub _new(worldAABB As Variant, gravity As Variant, doSleep As Variant)
+  
+  Dim bd As Variant
+  ' //  initialize instance variables for references
+  Me.step = New B2TimeStep()
+  Me.m_contactManager = New B2ContactManager()
+  ' // 
+  Me.m_listener = Null
+  Me.m_filter = b2CollisionFilter.b2_defaultFilter
+  Me.m_bodyList = Null
+  Me.m_contactList = Null
+  Me.m_jointList = Null
+  Me.m_bodyCount = 0
+  Me.m_contactCount = 0
+  Me.m_jointCount = 0
+  Me.m_bodyDestroyList = Null
+  Me.m_allowSleep = doSleep
+  Me.m_gravity = gravity
+  Me.m_contactManager.m_world = this
+  Me.m_broadPhase = New B2BroadPhase(worldAABB, Me.m_contactManager)
+  bd = New B2BodyDef()
+  
+  Me.m_groundBody = Me.CreateBody(bd)
+  
+End
+
+' // ~b2World()
+' // 	 me.DestroyBody( me.m_groundBody)
+' // 	delete me.m_broadPhase
+' // 
+' //  Set a callback to notify you when a joint is implicitly destroyed
+' //  when an attached body is destroyed.
+
+Public Sub SetListener(listener As Variant)
+  
+  Me.m_listener = listener
+  ' //  Register a collision filter to provide specific control over collision.
+  ' //  Otherwise the default filter is used (b2CollisionFilter).
+  
+End
+
+Public Sub SetFilter(filter As Variant)
+  
+  Me.m_filter = filter
+  ' //  Create and destroy rigid bodies. Destruction is deferred until the
+  ' //  the next call to me.Step. This is done so that bodies may be destroyed
+  ' //  while you iterate through the contact list.
+  
+End
+
+Public Sub CreateBody(def As Variant) As Variant ''funcion
+  ' // void* mem = me.m_blockAllocator.Allocate(sizeof(b2Body))
+  
+  Dim b As Variant = New B2Body(def, this)
+  
+  b.m_prev = Null
+  b.m_next = Me.m_bodyList
+  If (Me.m_bodyList) Then
+    Me.m_bodyList.m_prev = b
+  Endif
+  
+  Me.m_bodyList = b
+  Me.m_bodyCount += 1
+  Return b
+  
+End
+
+' //  Body destruction is deferred to make contact processing more robust.
+Public Sub DestroyBody(b As Variant) As Variant ''funcion
+  
+  If (b.m_flags & b2Body.e_destroyFlag)
+    Return
+  Endif
+  
+  ' //  Remove from normal body list.
+  If (b.m_prev) Then
+    b.m_prev.m_next = b.m_next
+  Endif
+  
+  If (b.m_next) Then
+    b.m_next.m_prev = b.m_prev
+  Endif
+  
+  If (b == Me.m_bodyList) Then
+    Me.m_bodyList = b.m_next
+  Endif
+  ''TODO: ver |=	
+  b.m_flags |= b2Body.e_destroyFlag
+  ' // b2Settings.b2Assert( me.m_bodyCount > 0)
+  Me.m_bodyCount -= 1
+  ' // b->~b2Body()
+  ' // b.Destroy()
+  ' //  Add to the deferred destruction list.
+  b.m_prev = Null
+  b.m_next = Me.m_bodyDestroyList
+  Me.m_bodyDestroyList = b
+  
+End
+
+Public Sub CleanBodyList()
+  
+  Dim b As Variant
+  Dim b0 As Variant
+  Dim jn As Variant 
+  Dim jn0 As Variant
+  
+  Me.m_contactManager.m_destroyImmediate = True
+  b = Me.m_bodyDestroyList
+  
+  While (b)
+    ' // b2Settings.b2Assert((b.m_flags & b2Body.e_destroyFlag) != 0)
+    ' //  Preserve the next pointer.
+    b0 = b
+    
+    b = b.m_next
+    ' //  Delete the attached joints
+    jn = b0.m_jointList
+    
+    While (jn)
+      
+      jn0 = jn
+      
+      jn = jn.next
+      If (Me.m_listener)
+        
+        Me.m_listener.NotifyJointDestroyed(jn0.joint)
+      Endif
+      Me.DestroyJoint(jn0.joint)
+    Wend
+    
+    b0.Destroy()
+  Wend
+  
+  ' // me.m_blockAllocator.Free(b0, sizeof(b2Body))
+  ' //  Reset the list.
+  Me.m_bodyDestroyList = Null
+  Me.m_contactManager.m_destroyImmediate = False
+  
+End
+
+Public Sub CreateJoint(def As Variant) As Variant ''funcion
+  
+  Dim j As Variant = b2Joint.Create(def, Me.m_blockAllocator)
+  Dim b As Variant 
+  Dim s As Variante
+  
+  ' //  Connect to the world list.
+  j.m_prev = Null
+  j.m_next = Me.m_jointList
+  If (Me.m_jointList)
+    Me.m_jointList.m_prev = j
+    Me.m_jointList = j
+    + + Me.m_jointCount
+    ' //  Connect to the bodies
+    j.m_node1.joint = j
+    j.m_node1.other = j.m_body2
+    j.m_node1.prev = Null
+    j.m_node1.nextt = j.m_body1.m_jointList
+    If (j.m_body1.m_jointList) Then j.m_body1.m_jointList.prev = j.m_node1
+    j.m_body1.m_jointList = j.m_node1
+    j.m_node2.joint = j
+    j.m_node2.other = j.m_body1
+    j.m_node2.prev = Null
+    j.m_node2.nextt = j.m_body2.m_jointList
+    If (j.m_body2.m_jointList) Then j.m_body2.m_jointList.prev = j.m_node2
+    j.m_body2.m_jointList = j.m_node2
+    ' //  If the joint prevents collisions, then reset collision filtering.
+    If (def.collideConnected = False) Then
+      ' //  Reset the proxies on the body with the minimum number of shapes.
+      b = IIf()def.body1.m_shapeCount < def.body2.m_shapeCount, def.body1, def.body2)
+      ''TODO: IMPORTANTE esto no se como traducirlo...
+      'for  s = b.m_shapeList; s; s = s.m_next)
+      '			s.ResetProxy( me.m_broadPhase)
+      'next
+      s = b.m_shapeList '¿?
+      s = s.m_next 	'¿?
+      s.ResetProxy(Me.m_broadPhase) 	'¿?
+      
+    Endif
+    
+    Return j
+    
+End
+
+Public Sub DestroyJoint(j As Variant)
+  
+  Dim body1 As Variant
+  Dim body2 As Variant
+  Dim collideConnected As Variant = j.m_collideConnected
+  Dim b As Variant 
+  ' //  Remove from the world.
+  If (j.m_prev) Then 
+    j.m_prev.m_next = j.m_next
+  Endif
+  
+  If (j.m_next) Then 
+    j.m_next.m_prev = j.m_prev
+  Endif
+  
+  If (j = Me.m_jointList) Then 
+    Me.m_jointList = j.m_next
+  Endif
+  
+  ' //  Disconnect from island graph.
+  body1 = j.m_body1
+  
+  body2 = j.m_body2
+  
+  ' //  Wake up touching bodies.
+  body1.WakeUp()
+  body2.WakeUp()
+  ' //  Remove from body 1
+  If (j.m_node1.prev) Then 
+    j.m_node1.prev.nextt = j.m_node1.nextt
+  Endif
+  
+  If (j.m_node1.nextt)
+    j.m_node1.nextt.prev = j.m_node1.prev
+  Endif
+  
+  If (j.m_node1 == body1.m_jointList) Then 
+    body1.m_jointList = j.m_node1.nextt
+  Endif
+  
+  j.m_node1.prev = Null
+  j.m_node1.nextt = Null
+  
+  ' //  Remove from body 2
+  If (j.m_node2.prev) Then
+    j.m_node2.prev.nextt = j.m_node2.nextt
+  Endif
+  
+  If (j.m_node2.nextt) Then 
+    j.m_node2.nextt.prev = j.m_node2.prev
+  Endif
+  
+  If (j.m_node2 = body2.m_jointList) Then
+    body2.m_jointList = j.m_node2.nextt
+  Endif
+  
+  j.m_node2.prev = Null
+  j.m_node2.nextt = Null
+  b2Joint.Destroy(j, Me.m_blockAllocator)
+  ' // b2Settings.b2Assert( me.m_jointCount > 0)
+  Me.m_jointCount -= 1
+  ' //  If the joint prevents collisions, then reset collision filtering.
+  If (collideConnected = False) Then 
+    ' //  Reset the proxies on the body with the minimum number of shapes.
+    b = iff(body1.m_shapeCount < body2.m_shapeCount, body1, body2)
+    ''TODO: IMPORTANTE esto no se como traducirlo...
+    'for  s = b.m_shapeList; s; s = s.m_next)
+    '			s.ResetProxy( me.m_broadPhase)
+    'next
+    s = b.m_shapeList '¿?
+    s = s.m_next 	'¿?
+    s.ResetProxy(Me.m_broadPhase) 	'¿?
+    ' //  The world provides a single ground body with no collision shapes. You
+    ' //  can use this to simplify the creation of joints.
+    
+End
+
+Public Sub GetGroundBody() As Variant ''funcion
+  
+  Return Me.m_groundBody
+  
+End
+
+Public step = New B2TimeStep()
+
+Public Sub Step(dt As Variant, iterations As Variant) As Variant ''funcion
+  
+  Dim b As Variant
+  Dim other As Variant
+  
+  Dim island As Variant
+  Dim stackSize As Variant
+  Dim stack As Variant 
+  Dim stackCount As Variant
+  Dim response As Variant
+  Dim cn As Variant
+  Dim jn As Variant
+  Dim i As Variant
+  Dim j As Variant
+  Dim c As Variant
+  Dim b As Variant
+  Dim K As Variant
+  Dim seed As Varaint
+  
+  Me.step.dt = dt
+  Me.step.iterations = iterations
+  If (dt > 0.0) Then 
+    Me.step.inv_dt = 1.0 / dt
+  Else
+    Me.step.inv_dt = 0.0
+  Endif
+  
+  Me.m_positionIterationCount = 0
+  ' //  Handle deferred contact destruction.
+  Me.m_contactManager.CleanContactList()
+  ' //  Handle deferred body destruction.
+  Me.CleanBodyList()
+  ' //  Update contacts.
+  Me.m_contactManager.Collide()
+  ' //  Size the island for the worst case.
+  island = New B2Island(Me.m_bodyCount, Me.m_contactCount, Me.m_jointCount, Me.m_stackAllocator)
+  
+  ' //  Clear all the island flags.
+  
+  b = Me.m_bodyList
+  While (b <> Null)
+    b = b.m_next
+    ''TODO: comprobar
+    b.m_flags &= ~b2Body.e_islandFlag
+  Wend
+  
+  c = Me.m_contactList
+  While (c <> Null)
+    c = c.m_next
+    ''TODO: comprobar
+    c.m_flags &= ~b2Contact.e_islandFlag
+  Wend
+  
+  j = Me.m_jointList
+  While (j <> Null)
+    j = j.m_next
+    j.m_islandFlag = False
+  Wend
+  
+  ' //  Build and simulate all awake islands.
+  stackSize = Me.m_bodyCount
+  
+  ' // var stack = (b2Body**) me.m_stackAllocator.Allocate(stackSize * sizeof(b2Body*))
+  'stack   = new Array( me.m_bodyCount)
+  
+  For k = 0 To Me.m_bodyCount - 1
+    stack.add(Null)
+  Next
+  
+  seed = Me.m_bodyList
+  
+  While sedd! = Null
+    seed = seed.m_next
+    If (seed.m_flags And (b2Body.e_staticFlag Or b2Body.e_islandFlag Or b2Body.e_sleepFlag Or b2Body.e_frozenFlag)) Then 
+      Continue
+    Endif
+    
+    ' //  Reset island and stack.
+    island.Clear()
+    stackCount = 0
+    
+    stackCount += 1
+    stack[stackCount] = seed
+    '' TODO: MIRAR este simbolo....
+    seed.m_flags |= b2Body.e_islandFlag
+    
+    ' //  Perform a depth first search (DFS) on the constraint graph.
+    While (stackCount > 0)
+      ' //  Grab the next body off the stack and add it to the island.
+      ''--stackCount
+      stackCount -= 1
+      b = stack[stackCount]
+      island.AddBody(b)
+      ' //  Make sure the body is awake.
+      '' TODO: MIRAR este simbolo....
+      b.m_flags &= ~b2Body.e_sleepFlag
+      ' //  To keep islands, we don't
+      ' //  propagate islands across static bodies.
+      If (b.m_flags And b2Body.e_staticFlag) Then 
+        Continue
+      Endif
+      ' //  Search all contacts connected to this body.
+      cn = b.m_contactList
+      While cn <> Null
+        cn = cn.next
+        
+        If (cn.contact.m_flags And b2Contact.e_islandFlag) Then 
+          Continue
+        Endif
+        
+        island.AddContact(cn.contact)
+        '' TODO: MIRAR este simbolo....
+        cn.contact.m_flags |= b2Contact.e_islandFlag
+        other = cn.other
+        If (other.m_flags And b2Body.e_islandFlag) Then 
+          Continue
+        Endif
+        
+        ' // b2Settings.b2Assert(stackCount < stackSize)
+        stack[stackCount + + ] = other
+        other.m_flags |= b2Body.e_islandFlag
+        
+        ' //  Search all joints connect to this body.
+        jn = b.m_jointList
+        
+        While jn <> Null
+          jn = jn.next
+          
+          If (jn.joint.m_islandFlag = True) Then 
+            Continue
+          Endif
+          
+          island.AddJoint(jn.joint)
+          jn.joint.m_islandFlag = True
+          other = jn.other
+          
+          If (other.m_flags And b2Body.e_islandFlag) Then
+            
+            Continue
+          Next
+          ' // b2Settings.b2Assert(stackCount < stackSize)
+          stack[stackCount + + ] = other
+          other.m_flags |= b2Body.e_islandFlag
+        Wend
+        
+        island.Solve(Me.step, Me.m_gravity)
+        Me.m_positionIterationCount = b2Math.b2Max(Me.m_positionIterationCount, b2Island.m_positionIterationCount)
+        
+        If (Me.m_allowSleep) Then 
+          island.UpdateSleep(dt)
+        Endif
+        ' //  Post solve cleanup.
+        For i = 0 To island.m_bodyCount - 1
+          
+          ' //  Allow static bodies to participate in other islands.
+          b = island.m_bodies[i]
+          If (b.m_flags And b2Body.e_staticFlag) Then 
+            ''TODO: 
+            b.m_flags &= ~b2Body.e_islandFlag
+          Endif
+          
+          ' //  Handle newly frozen bodies.
+          If (b.IsFrozen() And Me.m_listener) Then 
+            
+            response = Me.m_listener.NotifyBoundaryViolated(b)
+            
+            If (response = b2WorldListener.b2_destroyBody) Then 
+              
+              Me.DestroyBody(b)
+              b = Null
+              island.m_bodies[i] = Null
+            Endif
+          Endif
+        Next
+      Next
+      Me.m_broadPhase.Commit()
+      
+End
+
+' // me.m_stackAllocator.Free(stack)
+' //  me.Query the world for all shapes that potentially overlap the
+' //  provided AABB. You provide a shape pointer buffer of specified
+' //  size. The number of shapes found is returned. '' TODO: posible funcion (revisar)
+
+Public Sub Query(aabb As Variant, shapes As Variant, maxCount As Variant) As Variant ''funcion
+  ' // void** results = (void**) me.m_stackAllocator.Allocate(maxCount * sizeof(void*))
+  
+  Dim results As New Variant[]
+  Dim count As Variant = Me.m_broadPhase.QueryAABB(aabb, results, maxCount)
+  Dim i As Integer
+  
+  For i = 0 To count - 1
+    shapes[i] = results[i]
+  Next
+  ' // me.m_stackAllocator.Free(results)
+  Return count
+  
+End
+
+' //  You can use these to iterate over all the bodies, joints, and contacts.
+Public Sub GetBodyList() As Variant ''funcion
+  
+  Return Me.m_bodyList
+  
+End
+
+Public Sub GetJointList() As Variant ''funcion
+  
+  Return Me.m_jointList
+  
+End
+
+Public Sub GetContactList() As Variant ''funcion
+  
+  Return Me.m_contactList
+  
+End
