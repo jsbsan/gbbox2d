@@ -29,11 +29,11 @@ Public col2 As New B2Vec2()
 Public Sub initialize(angle As Float, c1 As Variant, c2 As Variant)
   
   Dim c, s As Float
-
+  
   If IsNull(angle) Then angle = 0
   
-  Me.col1 = New B2Vec2()
-  Me.col2 = New B2Vec2()
+  Me.col1 = New B2Vec2
+  Me.col2 = New B2Vec2
   
   If (Not (IsNull(c1))) And (Not (IsNull(c2))) Then
     Me.col1.SetV(c1)
@@ -117,9 +117,9 @@ Public Function Invert(out As Variant) As Variant
   c = this.col1.y
   d = this.col2.y
   
-  / / var B = New B2Mat22();
+  '/ / var B = New B2Mat22;
   det = a * d - b * c;
-  / / b2Settings.b2Assert(det! = 0.0);
+  '/ / b2Settings.b2Assert(det! = 0.0);
   det = 1.0 / det;
   out.col1.x = det * d
   out.col2.x = - det * b
@@ -133,7 +133,7 @@ End
 Public Sub solve(out As Variant, bX As Float, bY As Float) As Variant
   
   Dim a11, a12, a21, a22 As Float
-
+  
   / / float32 a11 = this.col1.x, a12 = this.col2.x, a21 = this.col1.y, a22 = this.col2.y;
   a11 = Me.col1.x
   a12 = Me.col2.x

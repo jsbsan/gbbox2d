@@ -55,7 +55,7 @@ Public Sub TestPoint(p As Variant) As Boolean
   
   For i = 0 To Me.m_vertexCount
     ' // var dot = b2Math.b2Dot( me.m_normals[i], b2Math.SubtractVV(pLocal, me.m_vertices[i]))
-    tVec = New B2Vec2()
+    tVec = New B2Vec2
     
     tVec.SetV(pLocal)
     tVec.Subtract(Me.m_vertices[i])
@@ -120,8 +120,8 @@ Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
   ' //  Normals
   
   ' //  initialize instance variables for references
-  Me.m_R = New B2Mat22()
-  Me.m_position = New B2Vec2()
+  Me.m_R = New B2Mat22
+  Me.m_position = New B2Vec2
   ' // 
   ' //  The constructor for b2Shape
   Me.m_userData = def.userData
@@ -135,21 +135,21 @@ Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
   Me.m_groupIndex = def.groupIndex
   ' // 
   ' //  initialize instance variables for references
-  Me.syncAABB = New B2AABB()
-  Me.syncMat = New B2Mat22()
-  Me.m_localCentroid = New B2Vec2()
-  Me.m_localOBB = New B2OBB()
+  Me.syncAABB = New B2AABB
+  Me.syncMat = New B2Mat22
+  Me.m_localCentroid = New B2Vec2
+  Me.m_localOBB = New B2OBB
   ' // 
   ' // super(def, body)
   ' //  Vertices
   Me.m_vertices = New Variant[b2Settings.b2_maxPolyVertices]
   Me.m_coreVertices = New Variant[b2Settings.b2_maxPolyVertices]
   ' // for (i = 0; i < b2Settings.b2_maxPolyVertices; i++)
-  ' // 	 me.m_vertices[i] = new b2Vec2()
+  ' // 	 me.m_vertices[i] = new b2Vec2
   ' //  Normals
   Me.m_normals = New Variant[(b2Settings.b2_maxPolyVertices]
   ' // for (i = 0; i < b2Settings.b2_maxPolyVertices; i++)
-  ' // 	 me.m_normals[i] = new b2Vec2()
+  ' // 	 me.m_normals[i] = new b2Vec2
   ' // b2Settings.b2Assert(def.type == b2Shape.e_boxShape || def.type == b2Shape.e_polyShape)
   Me.m_type = b2Shape.e_polyShape
   localR = New B2Mat22(def.localRotation)
@@ -172,23 +172,23 @@ Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
     hcY = Math.max(0.0, hY - 2.0 * b2Settings.b2_linearSlop)
     
     ' // me.m_vertices[0] = b2Mul(localR, b2Vec2(h.x, h.y))
-    tVec = (Me.m_vertices[0] = New B2Vec2())
+    tVec = (Me.m_vertices[0] = New B2Vec2)
     tVec.x = localR.col1.x * hX + localR.col2.x * hY
     tVec.y = localR.col1.y * hX + localR.col2.y * hY
     ' // me.m_vertices[1] = b2Mul(localR, b2Vec2(-h.x, h.y))
-    tVec = Me.m_vertices[1] = New B2Vec2()
+    tVec = (Me.m_vertices[1] = New B2Vec2)
     tVec.x = localR.col1.x * - hX + localR.col2.x * hY
     tVec.y = localR.col1.y * - hX + localR.col2.y * hY
     ' // me.m_vertices[2] = b2Mul(localR, b2Vec2(-h.x, -h.y))
-    tVec = Me.m_vertices[2] = New B2Vec2()
+    tVec = (Me.m_vertices[2] = New B2Vec2)
     tVec.x = localR.col1.x * - hX + localR.col2.x * - hY
     tVec.y = localR.col1.y * - hX + localR.col2.y * - hY
     ' // me.m_vertices[3] = b2Mul(localR, b2Vec2(h.x, -h.y))
-    tVec = Me.m_vertices[3] = New B2Vec2()
+    tVec = (Me.m_vertices[3] = New B2Vec2)
     tVec.x = localR.col1.x * hX + localR.col2.x * - hY
     tVec.y = localR.col1.y * hX + localR.col2.y * - hY
     ' // me.m_coreVertices[0] = b2Mul(localR, b2Vec2(hc.x, hc.y))
-    tVec = Me.m_coreVertices[0] = New B2Vec2()
+    tVec = (Me.m_coreVertices[0] = New B2Vec2)
     tVec.x = localR.col1.x * hcX + localR.col2.x * hcY
     tVec.y = localR.col1.y * hcX + localR.col2.y * hcY
     ' // me.m_coreVertices[1] = b2Mul(localR, b2Vec2(-hc.x, hc.y))
@@ -219,8 +219,8 @@ Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
     
     For i = 0 To Me.m_vertexCount
       
-      Me.m_vertices[i] = New B2Vec2()
-      Me.m_coreVertices[i] = New B2Vec2()
+      Me.m_vertices[i] = New B2Vec2
+      Me.m_coreVertices[i] = New B2Vec2
       ' // me.m_vertices[i] = b2Mul(localR, poly->vertices[i] - centroid)
       hX = poly.vertices[i].x - centroidX
       hY = poly.vertices[i].y - centroidY
@@ -276,7 +276,7 @@ Public Sub _new(def As Variant, body As Variant, newOrigin As Variant)
   i2 = 0
   
   For i = 0 To Me.m_vertexCount
-    Me.m_normals[i] = New B2Vec2()
+    Me.m_normals[i] = New B2Vec2
     i1 = i
     i2 = If(i + 1 < Me.m_vertexCount, i + 1, 0)
     ' // b2Vec2 edge = me.m_vertices[i2] - me.m_vertices[i1]
@@ -471,7 +471,7 @@ Public Sub ResetProxy(broadPhase As Variant) ''funcion
   
   position.Add(Me.m_position)
   
-  aabb = New B2AABB()
+  aabb = New B2AABB
   
   ' // aabb.minVertex = position - h
   aabb.minVertex.SetV(position)

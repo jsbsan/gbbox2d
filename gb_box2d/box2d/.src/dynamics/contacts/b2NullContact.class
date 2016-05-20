@@ -24,8 +24,8 @@ Public Sub _new(s1 As Variant, s2 As Variant) As Variant ''funcion
   ' //  The constructor for b2Contact
   ' //  initialize instance variables for references
   
-  Me.m_node1 = New B2ContactNode()
-  Me.m_node2 = New B2ContactNode()
+  Me.m_node1 = New B2ContactNode
+  Me.m_node2 = New B2ContactNode
   ' // 
   Me.m_flags = 0
   If (Not s1 Or Not s2) Then 

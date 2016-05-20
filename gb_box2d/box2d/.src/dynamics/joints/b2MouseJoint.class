@@ -30,13 +30,13 @@ Inherits B2Joint
 ' //  Presolve vars
 Public K As New B2Mat22()
 Public k1 As New B2Mat22()
-Public k2 As New B2Mat22()
+Public k2 As New B2Mat22
 
-Public m_localAnchor As Variant = New B2Vec2()
-Public m_target As Variant = New B2Vec2()
-Public m_impulse As Variant = New B2Vec2()
-Public m_ptpMass As Variant = New B2Mat22()
-Public m_C As Variant = New B2Vec2()
+Public m_localAnchor As Variant = New B2Vec2
+Public m_target As Variant = New B2Vec2
+Public m_impulse As Variant = New B2Vec2
+Public m_ptpMass As Variant = New B2Mat22
+Public m_C As Variant = New B2Vec2
 Public m_maxForce As Variant = Null
 Public m_beta As Variant = Null
 Public m_gamma As Variant = Null
@@ -50,7 +50,7 @@ End
 Public Sub GetAnchor2() As Variant ''funcion
   
   Dim tVec As Variant = b2Math.b2MulMV(Me.m_body2.m_R, Me.m_localAnchor)
-
+  
   tVec.Add(Me.m_body2.m_position)
   Return tVec
   
@@ -59,7 +59,7 @@ End
 Public Sub GetReactionForce(invTimeStep As Variant) As Variant ''funcion
   ' // b2Vec2 F = invTimeStep * me.m_impulse
   
-  Dim F As Variant = New B2Vec2()
+  Dim F As Variant = New B2Vec2
   
   F.SetV(Me.m_impulse)
   F.Multiply(invTimeStep)
@@ -92,8 +92,8 @@ Public Sub initialize(def As Variant)
   Dim k As Variant
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -105,14 +105,14 @@ Public Sub initialize(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.K = New B2Mat22()
-  Me.K1 = New B2Mat22()
-  Me.K2 = New B2Mat22()
-  Me.m_localAnchor = New B2Vec2()
-  Me.m_target = New B2Vec2()
-  Me.m_impulse = New B2Vec2()
-  Me.m_ptpMass = New B2Mat22()
-  Me.m_C = New B2Vec2()
+  Me.K = New B2Mat22
+  Me.K1 = New B2Mat22
+  Me.K2 = New B2Mat22
+  Me.m_localAnchor = New B2Vec2
+  Me.m_target = New B2Vec2
+  Me.m_impulse = New B2Vec2
+  Me.m_ptpMass = New B2Mat22
+  Me.m_C = New B2Vec2
   ' // 
   ' // super(def)
   Me.m_target.SetV(def.target)

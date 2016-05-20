@@ -35,20 +35,20 @@
 
 Inherits B2Joint
 
-Public m_localAnchor1 As Variant = New B2Vec2()
-Public m_localAnchor2 As Variant = New B2Vec2()
-Public m_localXAxis1 As Variant = New B2Vec2()
-Public m_localYAxis1 As Variant = New B2Vec2()
+Public m_localAnchor1 As Variant = New B2Vec2
+Public m_localAnchor2 As Variant = New B2Vec2
+Public m_localXAxis1 As Variant = New B2Vec2
+Public m_localYAxis1 As Variant = New B2Vec2
 Public m_initialAngle As Variant = Null
 
-Public m_linearJacobian As Variant = New B2Jacobian()
+Public m_linearJacobian As Variant = New B2Jacobian
 Public m_linearMass As Variant = Null
 Public m_linearImpulse As Variant = Null
 
 Public m_angularMass As Variant = Null
 Public m_angularImpulse As Variant = Null
 
-Public m_motorJacobian As Variant = New B2Jacobian()
+Public m_motorJacobian As Variant = New B2Jacobian
 Public m_motorMass As Variant = Null
 Public m_motorImpulse As Variant = Null
 Public m_limitImpulse As Variant = Null
@@ -69,7 +69,7 @@ Public Sub GetAnchor1() As Variant ''funcio as variant ''funcion
   
   ' // return b2Math.AddVV(b1.m_position, b2Math.b2MulMV(b1.m_R, me.m_localAnchor1))
   
-  Dim tVec As Variant = New B2Vec2()
+  Dim tVec As Variant = New B2Vec2
   
   tVec.SetV(Me.m_localAnchor1)
   tVec.MulM(b1.m_R)
@@ -85,7 +85,7 @@ Public Sub GetAnchor2() As Variant ''funcio as variant ''funcion
   ' // return b2Math.AddVV(b2.m_position, b2Math.b2MulMV(b2.m_R, me.m_localAnchor2))
   '' TODO: posible funcion (revisar)
   
-  Dim tVec As Variant = New B2Vec2()
+  Dim tVec As Variant = New B2Vec2
   
   tVec.SetV(Me.m_localAnchor2)
   tVec.MulM(b2.m_R)
@@ -302,8 +302,8 @@ Public Sub _new(def As Variant)
   
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -315,12 +315,12 @@ Public Sub _new(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.m_localAnchor1 = New B2Vec2()
-  Me.m_localAnchor2 = New B2Vec2()
-  Me.m_localXAxis1 = New B2Vec2()
-  Me.m_localYAxis1 = New B2Vec2()
-  Me.m_linearJacobian = New B2Jacobian()
-  Me.m_motorJacobian = New B2Jacobian()
+  Me.m_localAnchor1 = New B2Vec2
+  Me.m_localAnchor2 = New B2Vec2
+  Me.m_localXAxis1 = New B2Vec2
+  Me.m_localYAxis1 = New B2Vec2
+  Me.m_linearJacobian = New B2Jacobian
+  Me.m_motorJacobian = New B2Jacobian
   ' // 
   ' // me.m_localAnchor1 = b2Math.b2MulTMV( me.m_body1.m_R, b2Math.SubtractVV(def.anchorPoint , me.m_body1.m_position))
   tMat = Me.m_body1.m_R

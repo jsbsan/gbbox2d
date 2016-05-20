@@ -97,7 +97,7 @@ End
 Public Sub MulM(A As Variant)
   
   Dim tx As Float
-
+  
   tX = Me.x
   Me.x = A.col1.x * tX + A.col2.x * Me.y
   Me.y = A.col1.y * tX + A.col2.y * Me.y
@@ -107,7 +107,7 @@ End
 Public Sub MulTM(A As Variant)
   
   Dim tx As Float
-
+  
   tX = b2Math.b2Dot(Me, A.col1)
   Me.y = b2Math.b2Dot(Me, A.col2)
   Me.x = tX
@@ -117,7 +117,7 @@ End
 Public Sub CrossVF(s As Float)
   
   Dim tx As Float
-
+  
   tX = Me.x
   Me.x = s * Me.y
   Me.y = - s * tX
@@ -127,7 +127,7 @@ End
 Public Sub CrossFV(s As Float)
   
   Dim tx As Float
-
+  
   tX = Me.x
   Me.x = - s * Me.y
   Me.y = s * tX

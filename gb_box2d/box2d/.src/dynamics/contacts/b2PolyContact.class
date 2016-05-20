@@ -9,7 +9,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
-you must Not   
+'you must Not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -29,8 +29,8 @@ Public Sub initialize(s1 As Variant, s2 As Variant)
   As Variant ''funcion
   ' //  The constructor for b2Contact
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2ContactNode()
-  Me.m_node2 = New B2ContactNode()
+  Me.m_node1 = New B2ContactNode
+  Me.m_node2 = New B2ContactNode
   ' // 
   Me.m_flags = 0
   If (!s1 || !s2)
@@ -56,7 +56,7 @@ Public Sub initialize(s1 As Variant, s2 As Variant)
     Me.m_node2.other = Null
     ' // 
     ' //  initialize instance variables for references
-    Me.m0 = New B2Manifold()
+    Me.m0 = New B2Manifold
     Me.m_manifold = [ New B2Manifold()]
     ' // 
     ' // super(shape1, shape2)

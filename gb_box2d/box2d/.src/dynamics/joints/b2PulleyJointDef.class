@@ -26,10 +26,10 @@
 
 Inherits B2JointDef
 
-Public groundPoint1 As Variant = New B2Vec2()
-Public groundPoint2 As Variant = New B2Vec2()
-Public anchorPoint1 As Variant = New B2Vec2()
-Public anchorPoint2 As Variant = New B2Vec2()
+Public groundPoint1 As Variant = New B2Vec2
+Public groundPoint2 As Variant = New B2Vec2
+Public anchorPoint1 As Variant = New B2Vec2
+Public anchorPoint2 As Variant = New B2Vec2
 Public maxLength1 As Variant = Null
 Public maxLength2 As Variant = Null
 Public ratio As Variant = Null
@@ -44,10 +44,10 @@ Public Sub _new()
   Me.collideConnected = False
   ' // 
   ' //  initialize instance variables for references
-  Me.groundPoint1 = New B2Vec2()
-  Me.groundPoint2 = New B2Vec2()
-  Me.anchorPoint1 = New B2Vec2()
-  Me.anchorPoint2 = New B2Vec2()
+  Me.groundPoint1 = New B2Vec2
+  Me.groundPoint2 = New B2Vec2
+  Me.anchorPoint1 = New B2Vec2
+  Me.anchorPoint2 = New B2Vec2
   ' // 
   Me.type = b2Joint.e_pulleyJoint
   Me.groundPoint1.Set(-1.0, 1.0)

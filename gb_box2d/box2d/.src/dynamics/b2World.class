@@ -24,7 +24,7 @@ Public m_blockAllocator As Variant = Null
 Public m_stackAllocator As Variant = Null
 
 Public m_broadPhase As Variant = Null
-Public m_contactManager As Variant = New B2ContactManager()
+Public m_contactManager As Variant = New B2ContactManager
 
 Public m_bodyList As Variant = Null
 Public m_contactList As Variant = Null
@@ -53,8 +53,8 @@ Public Sub _new(worldAABB As Variant, gravity As Variant, doSleep As Variant)
   
   Dim bd As Variant
   ' //  initialize instance variables for references
-  Me.step = New B2TimeStep()
-  Me.m_contactManager = New B2ContactManager()
+  Me.step = New B2TimeStep
+  Me.m_contactManager = New B2ContactManager
   ' // 
   Me.m_listener = Null
   Me.m_filter = b2CollisionFilter.b2_defaultFilter
@@ -69,7 +69,7 @@ Public Sub _new(worldAABB As Variant, gravity As Variant, doSleep As Variant)
   Me.m_gravity = gravity
   Me.m_contactManager.m_world = this
   Me.m_broadPhase = New B2BroadPhase(worldAABB, Me.m_contactManager)
-  bd = New B2BodyDef()
+  bd = New B2BodyDef
   
   Me.m_groundBody = Me.CreateBody(bd)
   
@@ -316,7 +316,7 @@ Public Sub GetGroundBody() As Variant ''funcion
   
 End
 
-Public step = New B2TimeStep()
+Public step = New B2TimeStep
 
 Public Sub Step(dt As Variant, iterations As Variant) As Variant ''funcion
   

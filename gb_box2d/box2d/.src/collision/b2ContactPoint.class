@@ -30,7 +30,7 @@ Public id As As New 2 ContactID()
 Public Sub _new()
   ' //  initialize instance variables for references
   
-  Me.position = New B2Vec2()
+  Me.position = New B2Vec2
   Me.id = New B2ContactID()
   
 End

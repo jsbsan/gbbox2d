@@ -57,7 +57,7 @@ End
 Public Sub AddShape(shape As Variant)
   
   Dim i As Integer = 0
-
+  
   For i = 0 To b2Settings.b2_maxShapesPerBody - 1
     If (Me.shapes[i] = Null) Then
       Me.shapes[i] = shape

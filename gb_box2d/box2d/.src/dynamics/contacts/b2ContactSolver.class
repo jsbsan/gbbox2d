@@ -95,7 +95,7 @@ Public Sub _new(contacts As Variant, contactCount As Variant, allocator As Varia
   
   ' //  fill array
   For i = 0 To Me.m_constraintCount
-    Me.m_constraints[i] = New B2ContactConstraint()
+    Me.m_constraints[i] = New B2ContactConstraint
   Next
   
   For i = 0 To contactCount

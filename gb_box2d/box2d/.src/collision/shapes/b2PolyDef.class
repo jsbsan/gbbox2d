@@ -46,7 +46,7 @@ Public Sub _new()
   Me.type = b2Shape.e_polyShape
   Me.vertexCount = 0
   For i = 0 To b2Settings.b2_maxPolyVertices 'definir b2Settings como módulo 
-    tmp = New B2Vec2()
+    tmp = New B2Vec2
     Me.vertices.add(tmp)
   Next
   

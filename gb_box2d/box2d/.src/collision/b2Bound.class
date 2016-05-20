@@ -20,7 +20,7 @@
 
 Public value As Integer = 0
 Public proxyId As Integer = 0
-Public stabbingCount As Integer 0
+Public stabbingCount As Integer = 0
 
 Public Sub IsLower() As Boolean
   

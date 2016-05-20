@@ -26,8 +26,8 @@ Public m_radius As Float
 
 Public Sub TestPoint(p As Variant) As Variant 
   
-  Dim d As Variant = New B2Vec2()
-
+  Dim d As Variant = New B2Vec2
+  
   d.SetV(p)
   d.Subtract(Me.m_position)
   Return b2Math.b2Dot(d, d) <= Me.m_radius * Me.m_radius
@@ -40,11 +40,11 @@ Public Sub initialize(def As Variant, body As Variant, localCenter As Variant)
   Dim circle As Variant = def
   Dim rX As Variant = Me.m_R.col1.x * Me.m_localPosition.x + Me.m_R.col2.x * Me.m_localPosition.y
   Dim rY As Variant = Me.m_R.col1.y * Me.m_localPosition.x + Me.m_R.col2.y * Me.m_localPosition.y
-  Dim aabb As Variant = New B2AABB()
+  Dim aabb As Variant = New B2AABB
   Dim broadPhase As Variant = Me.m_body.m_world.m_broadPhase
   
-  Me.m_R = New B2Mat22()
-  Me.m_position = New B2Vec2()
+  Me.m_R = New B2Mat22
+  Me.m_position = New B2Vec2
   ' // 
   ' //  The constructor for b2Shape
   Me.m_userData = def.userData
@@ -58,7 +58,7 @@ Public Sub initialize(def As Variant, body As Variant, localCenter As Variant)
   Me.m_groupIndex = def.groupIndex
   ' // 
   ' //  initialize instance variables for references
-  Me.m_localPosition = New B2Vec2()
+  Me.m_localPosition = New B2Vec2
   ' // 
   ' // super(def, body)
   ' // b2Settings.b2Assert(def.type == b2Shape.e_circleShape)
@@ -101,7 +101,7 @@ Public Sub Synchronize(position1 As Variant, R1 As Variant, position2 As Variant
   ' // b2Vec2 upper = b2Max(p1, me.m_position)
   Dim upperX As Variant = Math.max(p1X, Me.m_position.x)
   Dim upperY As Variant = Math.max(p1Y, Me.m_position.y)
-  Dim aabb As Variant = New B2AABB()
+  Dim aabb As Variant = New B2AABB
   Dim broadPhase As Variant = Me.m_body.m_world.m_broadPhase
   
   Me.m_R.SetM(R2)
@@ -139,7 +139,7 @@ End
 Public Sub ResetProxy(broadPhase As Variant) 
   
   Dim proxy As Variant = broadPhase.GetProxy(Me.m_proxyId)
-  Dim aabb As Variant = New B2AABB()
+  Dim aabb As Variant = New B2AABB
   
   If (Me.m_proxyId == b2Pair.b2_nullProxy) Then 
     Return

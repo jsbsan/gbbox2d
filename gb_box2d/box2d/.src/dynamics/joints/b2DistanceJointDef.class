@@ -33,8 +33,8 @@ Public Sub _new()
   Me.collideConnected = False
   ' // 
   ' //  initialize instance variables for references
-  Me.anchorPoint1 = New B2Vec2()
-  Me.anchorPoint2 = New B2Vec2()
+  Me.anchorPoint1 = New B2Vec2
+  Me.anchorPoint2 = New B2Vec2
   ' // 
   Me.type = b2Joint.e_distanceJoint
   ' // me.anchorPoint1.Set(0.0, 0.0)

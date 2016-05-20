@@ -19,14 +19,14 @@
 ' */
 ' //  A manifold for two touching convex shapes.
 
-Public minVertex As B2Vec2()
-Public maxVertex As B2Vec2()
+Public minVertex As B2Vec2
+Public maxVertex As B2Vec2
 
 Public Sub _new()
   ' //  initialize instance variables for references
   
-  Me.minVertex = New B2Vec2()
-  Me.maxVertex = New B2Vec2()
+  Me.minVertex = New B2Vec2
+  Me.maxVertex = New B2Vec2
   ' // 
   
 End
@@ -43,9 +43,9 @@ Public Sub IsValid() As Boolean  ''funcion
   dX -= Me.minVertex.x
   dY -= Me.minVertex.y
   
-  valid = (dX >= 0.0 & & dY >= 0.0)
+  valid = (dX >= 0.0 And dY >= 0.0)
   
-  valid = (valid & & Me.minVertex.IsValid() & & Me.maxVertex.IsValid())
+  valid = (valid And Me.minVertex.IsValid() And Me.maxVertex.IsValid())
   Return valid
   
 End

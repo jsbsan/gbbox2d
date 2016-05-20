@@ -26,7 +26,7 @@ Public _key As Float = 0
 Public Sub _new()
   
   ' //  initialize instance variables for references
-  Me.features = New Features()
+  Me.features = New Features
   ' // 
   Me.features._m_id = Me
   
@@ -40,7 +40,7 @@ End
 
 Public Sub Copy() As Variant ''funcion
   
-  Dim id As Variant = New B2ContactID()
+  Dim id As Variant = New B2ContactID
   
   id.set_key(Me._key)
   Return id

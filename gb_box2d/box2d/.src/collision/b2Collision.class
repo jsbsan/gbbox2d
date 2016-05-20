@@ -9,7 +9,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
-you must Not   
+'you must Not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -30,7 +30,7 @@ you must Not
 ' //  Clip
 ' //  The normal points from 1 to 2
 
-  Public b2CollidePolyTempVec = New B2Vec2()
+Public b2CollidePolyTempVec As New B2Vec2
 
 Public Sub _new()
   
@@ -169,7 +169,7 @@ Public Sub EdgeSeparation(poly1 As Variant, edge1 As Variant, poly2 As Variant) 
     
 End
 
-Public Sub FindMaxSeparation(edgeIndex ' /* int ptr*/ as variant, poly1 as variant, poly2 as variant, conservative as variant) as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcion
+Public Sub FindMaxSeparation(edgeIndex As Variant, poly1 As Variant, poly2 As Variant, conservative As Variant) As Variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcion
   
   Dim count1 As Variant = poly1.m_vertexCount
   
@@ -425,8 +425,6 @@ Public Sub FindIncidentEdge(c As Variant, poly1 As Variant, edge1 As Variant, po
   tClip.id.features.incidentVertex = vertex22
   
 End
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Public Sub b2CollidePoly(manifold As Variant, polyA As Variant, polyB As Variant, conservative As Variant) As Variant ''funcio as variant ''funcio as variant ''funcio as variant ''funcion
   

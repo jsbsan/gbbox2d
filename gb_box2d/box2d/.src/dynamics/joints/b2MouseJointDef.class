@@ -20,7 +20,7 @@
 
 Inherits B2JointDef
 
-Public target As Variant = New B2Vec2()
+Public target As Variant = New B2Vec2
 Public maxForce As Variant = Null
 Public frequencyHz As Variant = Null
 Public dampingRatio As Variant = Null
@@ -36,7 +36,7 @@ Public Sub _new()
   Me.collideConnected = False
   ' // 
   ' //  initialize instance variables for references
-  Me.target = New B2Vec2()
+  Me.target = New B2Vec2
   ' // 
   Me.type = b2Joint.e_mouseJoint
   Me.maxForce = 0.0

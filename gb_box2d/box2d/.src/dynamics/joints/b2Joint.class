@@ -100,8 +100,8 @@ End
 Public Sub _new(def As Variant)
   
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null

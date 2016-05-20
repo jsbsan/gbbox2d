@@ -53,7 +53,7 @@ End
 Public Sub _new()
   ' //  initialize instance variables for references
   
-  Me.linear1 = New B2Vec2()
-  Me.linear2 = New B2Vec2()
+  Me.linear1 = New B2Vec2
+  Me.linear2 = New B2Vec2
   
 End

@@ -21,13 +21,13 @@
 Inherits B2Joint
 
 Public m_ground As Variant = Null,
-  Public m_groundAnchor1 As Variant = New B2Vec2()
-Public m_groundAnchor2 As Variant = New B2Vec2()
-Public m_localAnchor1 As Variant = New B2Vec2()
-Public m_localAnchor2 As Variant = New B2Vec2()
+  Public m_groundAnchor1 As Variant = New B2Vec2
+Public m_groundAnchor2 As Variant = New B2Vec2
+Public m_localAnchor1 As Variant = New B2Vec2
+Public m_localAnchor2 As Variant = New B2Vec2
 
-Public m_u1 As Variant = New B2Vec2()
-Public m_u2 As Variant = New B2Vec2()
+Public m_u1 As Variant = New B2Vec2
+Public m_u2 As Variant = New B2Vec2
 
 Public m_constant As Variant = Null
 Public m_ratio As Variant = Null
@@ -58,7 +58,7 @@ Public Sub GetAnchor1() As Variant ''funcio as variant ''funcion
   ' // return me.m_body1->m_position + b2Mul( me.m_body1->m_R ,me.m_localAnchor1)
   
   Dim tMat As Variant = Me.m_body1.m_R
-
+  
   Return New B2Vec2(Me.m_body1.m_position.x + (tMat.col1.x * Me.m_localAnchor1.x + tMat.col2.x * Me.m_localAnchor1.y), Me.m_body1.m_position.y + (tMat.col1.y * Me.m_localAnchor1.x + tMat.col2.y * Me.m_localAnchor1.y))
   
 End
@@ -165,8 +165,8 @@ Public Sub _new(def As Variant)
   
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -178,12 +178,12 @@ Public Sub _new(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.m_groundAnchor1 = New B2Vec2()
-  Me.m_groundAnchor2 = New B2Vec2()
-  Me.m_localAnchor1 = New B2Vec2()
-  Me.m_localAnchor2 = New B2Vec2()
-  Me.m_u1 = New B2Vec2()
-  Me.m_u2 = New B2Vec2()
+  Me.m_groundAnchor1 = New B2Vec2
+  Me.m_groundAnchor2 = New B2Vec2
+  Me.m_localAnchor1 = New B2Vec2
+  Me.m_localAnchor2 = New B2Vec2
+  Me.m_u1 = New B2Vec2
+  Me.m_u2 = New B2Vec2
   ' // 
   ' //  parent
   ' // super(def)

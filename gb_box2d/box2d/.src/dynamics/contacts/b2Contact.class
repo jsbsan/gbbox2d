@@ -78,8 +78,8 @@ End
 Public Sub _new(s1 As Variant, s2 As Variant) As Variant ''funcion
   ' //  initialize instance variables for references
   
-  Me.m_node1 = New B2ContactNode()
-  Me.m_node2 = New B2ContactNode()
+  Me.m_node1 = New B2ContactNode
+  Me.m_node2 = New B2ContactNode
   ' // 
   Me.m_flags = 0
   If (Not s1 Or Not s2) Then 
@@ -136,7 +136,7 @@ Public Sub InitializeRegisters()
     Me.s_registers[i] = New New Variant[]
     
     For j = 0 To b2Shape.e_shapeTypeCount
-      Me.s_registers[i][j] = New B2ContactRegister()
+      Me.s_registers[i][j] = New B2ContactRegister
     Next
   Next
   

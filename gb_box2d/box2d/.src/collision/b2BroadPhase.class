@@ -37,18 +37,18 @@
 ' //    worlds (use a multi-SAP instead), it is not great for large objects.
 
 ' // public:
-Public m_pairManager As New 2 PairManager()
+Public m_pairManager As New B2PairManager ''TODO: MIRAR 2 PairManager
 
 Public m_proxyPool As New Variant[b2Settings.b2_maxPairs]
 Public m_freeProxy As Integer = 0
 
 Public m_bounds As New Variant[2 * b2Settings.b2_maxProxies]
 
-Public m_queryResults s New Variant[b2Settings.b2_maxProxies]
+Public m_queryResults As New Variant[b2Settings.b2_maxProxies]
 Public m_queryResultCount As Integer = 0
 Public m_worldAABB As Variant = Null
 
-Public m_quantizationFactor As New B2Vec2()
+Public m_quantizationFactor As New B2Vec2
 Public m_proxyCount As Integer = 0
 Public m_timeStamp As Integer = 0
 Public s_validate As Boolean = False
@@ -64,14 +64,15 @@ Public Sub _new(worldAABB As Variant, callback As Variant)
   Dim dX As Variant = worldAABB.maxVertex.x
   
   Dim dY As Variant = worldAABB.maxVertex.y
-  Dim tProxy As B2Proxy()
+  Dim tProxy As B2Proxy
   
   ' //  initialize instance variables for references
-  Me.m_pairManager = New B2PairManager()
-  Me.m_proxyPool = New B2Settings.b2_maxPairs[]
-  Me.m_bounds = New B2Settings.b2_maxProxies[] 'con doble 
-  Me.m_queryResults = New B2Settings.b2_maxProxies[]
-  Me.m_quantizationFactor = New B2Vec2()
+  Me.m_pairManager = New B2PairManager
+  Me.m_proxyPool = New Variant[B2Settings.b2_maxPairs]
+  
+  Me.m_bounds = New Variant[B2Settings.b2_maxProxies] 'con doble 
+  Me.m_queryResults = New Variant[B2Settings.b2_maxProxies]
+  Me.m_quantizationFactor = New B2Vec2
   ' // 
   ' // b2Settings.b2Assert(worldAABB.IsValid())
   
@@ -83,12 +84,12 @@ Public Sub _new(worldAABB As Variant, callback As Variant)
     Me.m_queryResults[i] = 0
   Next
   ' //  bounds array
-  Me.m_bounds = New Variant[2][2 * b2Settings.b2_maxProxies]
+  Me.m_bounds = New Variant[2, 2 * b2Settings.b2_maxProxies]
   
   For i = 0 To 2
     '	 me.m_bounds.add(new variant[][]))) 'new Array(2*b2Settings.b2_maxProxies)
     For j = 0 To 2 * b2Settings.b2_maxProxies
-      Me.m_bounds[i][j] = New B2Bound()
+      Me.m_bounds[i][j] = New B2Bound
     Next
   Next
   
@@ -98,7 +99,7 @@ Public Sub _new(worldAABB As Variant, callback As Variant)
   Me.m_quantizationFactor.y = b2Settings.USHRT_MAX / dY
   
   For i = 0 To b2Settings.b2_maxProxies - 1
-    tProxy = New B2Proxy()
+    tProxy = New B2Proxy
     Me.m_proxyPool[i] = tProxy
     tProxy.SetNext(i + 1)
     tProxy.timeStamp = 0
@@ -106,7 +107,7 @@ Public Sub _new(worldAABB As Variant, callback As Variant)
     tProxy.userData = Null
   Next
   
-  tProxy = New B2Proxy()
+  tProxy = New B2Proxy
   Me.m_proxyPool[b2Settings.b2_maxProxies - 1] = tProxy
   tProxy.SetNext(b2Pair.b2_nullProxy)
   tProxy.timeStamp = 0
@@ -183,12 +184,16 @@ Public Sub CreateProxy(aabb As Variant, userData As Variant) As Variant ''funcio
   Dim upperIndexOut As Variant
   
   Dim j As Integer
-  
+  Dim i As Integer
   Dim tIndex As Variant 
   
   Dim tArr As New Variant[]
   
   Dim proxy2 As Variant
+  
+  Dim tEnd As Float
+  Dim tbound1 As Variant
+  Dim tbound2 As Variant
   
   proxy = Me.m_proxyPool[proxyId]
   Me.m_freeProxy = proxy.GetNext()
@@ -221,7 +226,7 @@ Public Sub CreateProxy(aabb As Variant, userData As Variant) As Variant ''funcio
     
     ' //  make temp array
     For j = 0 To tEnd - 1
-      tArr[j] = New B2Bound()
+      tArr[j] = New B2Bound
       tBound1 = tArr[j]
       tBound2 = bounds[upperIndex + j]
       tBound1.value = tBound2.value
@@ -247,7 +252,7 @@ Public Sub CreateProxy(aabb As Variant, userData As Variant) As Variant ''funcio
     tEnd = upperIndex - lowerIndex
     
     For j = 0 To tEnd - 1
-      tArr[j] = New B2Bound()
+      tArr[j] = New B2Bound
       tBound1 = tArr[j]
       tBound2 = bounds[lowerIndex + j]
       tBound1.value = tBound2.value
@@ -320,7 +325,7 @@ Public Sub DestroyProxy(proxyId As Variant)
   ' // b2Settings.b2Assert(proxy.IsValid())
   Dim boundCount As Variant = 2 * Me.m_proxyCount
   
-  Dim axis As Inteter
+  Dim axis As Integer
   
   Dim bounds As Variant 
   
@@ -337,6 +342,7 @@ Public Sub DestroyProxy(proxyId As Variant)
   Dim tArr As Variant 
   
   Dim j As Integer = 0
+  Dim i As Integer = 0
   
   Dim tEnd As Integer
   
@@ -349,7 +355,6 @@ Public Sub DestroyProxy(proxyId As Variant)
   Dim proxy2 As Variant 
   
   Dim index2 As Variant
-  Dim j As Integer
   
   For axis = 0 To 2
     bounds = Me.m_bounds[axis]
@@ -364,17 +369,17 @@ Public Sub DestroyProxy(proxyId As Variant)
     
     ' //  replace memmove calls
     ' // memmove(bounds + lowerIndex, bounds + lowerIndex + 1, (upperIndex - lowerIndex - 1) * sizeof(b2Bound))
-    tArr = New Array()
+    tArr = New Variant[]
     
     j = 0
     
     tEnd = upperIndex - lowerIndex - 1
     
-    tBound1 = New Variant
-    tBound2 = New Variant
+    tBound1 = Null 'iniciar varaiante
+    tBound2 = Null 'New Variant
     ' //  make temp array
     For j = 0 To tEnd - 1
-      tArr[j] = New B2Bound()
+      tArr[j] = New B2Bound
       tBound1 = tArr[j]
       tBound2 = bounds[lowerIndex + 1 + j]
       tBound1.value = tBound2.value
@@ -399,7 +404,7 @@ Public Sub DestroyProxy(proxyId As Variant)
     tArr = New Variant[]
     tEnd = boundCount - upperIndex - 1
     For j = 0 To tEnd - 1
-      tArr[j] = New B2Bound()
+      tArr[j] = New B2Bound
       tBound1 = tArr[j]
       tBound2 = bounds[upperIndex + 1 + j]
       tBound1.value = tBound2.value
@@ -522,11 +527,11 @@ Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as
   proxy = Me.m_proxyPool[proxyId]
   
   ' //  Get new bound values
-  newValues = New B2BoundValues()
+  newValues = New B2BoundValues
   
   Me.ComputeBounds(newValues.lowerValues, newValues.upperValues, aabb)
   ' //  Get old bound values
-  oldValues = New B2BoundValues()
+  oldValues = New B2BoundValues
   
   For axis = 0 To 2
     oldValues.lowerValues[axis] = Me.m_bounds[axis][proxy.lowerBounds[axis]].value
@@ -558,7 +563,7 @@ Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as
     If (deltaLower < 0) Then 
       
       index = lowerIndex
-      While (index > 0 & & lowerValue < bounds[index - 1].value)
+      While (index > 0 Or lowerValue < bounds[index - 1].value)
         bound = bounds[index]
         prevBound = bounds[index - 1]
         prevProxyId = prevBound.proxyId
@@ -594,10 +599,10 @@ Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as
     Endif
     
     ' //  Should we move the upper bound up?
-    If (deltaUpper > 0)thhen 
+    If (deltaUpper > 0) Then 
       
       index = upperIndex
-      While (index < boundCount - 1 & & bounds[index + 1].value <= upperValue)
+      While (index < boundCount - 1 Or bounds[index + 1].value <= upperValue)
         
         bound = bounds[index]
         nextBound = bounds[index + 1]
@@ -636,7 +641,7 @@ Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as
     If (deltaLower > 0) Then 
       
       index = lowerIndex
-      While (index < boundCount - 1 & & bounds[index + 1].value <= lowerValue)
+      While (index < boundCount - 1 And bounds[index + 1].value <= lowerValue)
         
         bound = bounds[index]
         nextBound = bounds[index + 1]
@@ -674,7 +679,7 @@ Public Sub MoveProxy(proxyId As Variant, aabb As Variant) As Variant ''funcio as
     If (deltaUpper < 0) Then
       
       index = upperIndex
-      While (index > 0 & & upperValue < bounds[index - 1].value)
+      While (index > 0 And upperValue < bounds[index - 1].value)
         
         bound = bounds[index]
         prevBound = bounds[index - 1]
@@ -729,9 +734,9 @@ Public Sub QueryAABB(aabb As Variant, userData As Variant, maxCount As Variant) 
   
   Dim upperIndex As Variant = 0
   
-  Dim lowerIndexOut As New Variant[] = [lowerIndex]
+  Dim lowerIndexOut As New Variant[lowerIndex]
   
-  Dim upperIndexOut As New Variant[] = [upperIndex]
+  Dim upperIndexOut As New Variant[upperIndex]
   Dim count As Integer = 0
   Dim i As Integer
   Dim proxy As Variant
@@ -746,7 +751,7 @@ Public Sub QueryAABB(aabb As Variant, userData As Variant, maxCount As Variant) 
   upperIndexOut = [upperIndex]
   
   i = 0
-  While (i < Me.m_queryResultCount & & count < maxCount)
+  While (i < Me.m_queryResultCount And count < maxCount)
     i += 1
     count = +1
     ' // b2Settings.b2Assert( me.m_queryResults[i] < b2Settings.b2_maxProxies)
@@ -801,8 +806,8 @@ Public Sub Validate()
       Else
         
         ' // b2Settings.b2Assert( me.m_proxyPool[bound.proxyId].upperBounds[axis] == i)
-        stabbingCount - -
-        Endif
+        stabbingCount -= 1
+      Endif
     Next
     ' // b2Settings.b2Assert(bound.stabbingCount == stabbingCount)
   Next
@@ -834,10 +839,10 @@ Public Sub ComputeBounds(lowerValues As Variant, upperValues As Variant, aabb As
   ' //  Bump lower bounds downs and upper bounds up. This ensures correct sorting of
   ' //  lower/upper bounds that would have equal values.
   ' //  TODO_ERIN implement fast float to uint16 conversion.
-  lowerValues[0] = ' /* uint*/( me.m_quantizationFactor.x * (minVertexX - me.m_worldAABB.minVertex.x)) & (b2Settings.USHRT_MAX - 1)
-    upperValues[0] = ( ' /* uint*/( me.m_quantizationFactor.x * (maxVertexX - me.m_worldAABB.minVertex.x))& 0x0000ffff) | 1
-    lowerValues[1] = ' /* uint*/( me.m_quantizationFactor.y * (minVertexY - me.m_worldAABB.minVertex.y)) & (b2Settings.USHRT_MAX - 1)
-    upperValues[1] = ( ' /* uint*/( me.m_quantizationFactor.y * (maxVertexY - me.m_worldAABB.minVertex.y))& 0x0000ffff) | 1
+  lowerValues[0] = (Me.m_quantizationFactor.x * (minVertexX - Me.m_worldAABB.minVertex.x)) & (b2Settings.USHRT_MAX - 1)
+  upperValues[0] = ((Me.m_quantizationFactor.x * (maxVertexX - Me.m_worldAABB.minVertex.x)) & &0000ffff&) Or 1
+  lowerValues[1] = (Me.m_quantizationFactor.y * (minVertexY - Me.m_worldAABB.minVertex.y)) & (b2Settings.USHRT_MAX - 1)
+  upperValues[1] = ((Me.m_quantizationFactor.y * (maxVertexY - Me.m_worldAABB.minVertex.y)) & &0000ffff&) Or 1
   ' //  This one is only used for validation.
   
 End
@@ -861,9 +866,9 @@ Public Sub TestOverlapValidate(p1 As Variant, p2 As Variant) As Variant ''funcio
     If (bounds[p1.upperBounds[axis]].value < bounds[p2.lowerBounds[axis]].value)
       Return False
     Endif
-    
-    Return True
-    
+  Next
+  Return True
+  
 End
 
 Public Sub TestOverlap(b As Variant, p As Variant) As Variant ''funcio as variant ''funcio as variant ''funcion
@@ -883,13 +888,15 @@ Public Sub TestOverlap(b As Variant, p As Variant) As Variant ''funcio as varian
     If (b.upperValues[axis] < bounds[p.lowerBounds[axis]].value) Then
       Return False
     Endif
-    
-    Return True
-    
+  Next
+  Return True
+  
 End
 
 Public Sub Query(lowerQueryOut As Variant, upperQueryOut As Variant, lowerValue As Variant, upperValue As Variant, bounds As Variant, boundCount As Variant, axis As Variant)
   
+  Dim s As Integer
+  Dim i As Integer
   Dim lowerQuery As Variant = b2BroadPhase.BinarySearch(bounds, boundCount, lowerValue)
   Dim upperQuery As Variant = b2BroadPhase.BinarySearch(bounds, boundCount, upperValue)
   Dim j As Integer
@@ -954,7 +961,7 @@ Public Sub IncrementTimeStamp()
     Next
     Me.m_timeStamp = 1
   Else
-    + + Me.m_timeStamp
+    Me.m_timeStamp += 1
   Endif
   
 End
@@ -967,7 +974,7 @@ Public Sub BinarySearch(bounds As Variant, count As Variant, value As Variant) A
   Dim midd As Integer
   
   While (low <= high)
-    midd = Math.floor((low + high) / 2)
+    midd = Int((low + high) / 2)
     If (bounds[midd].value > value) Then 
       high = midd - 1
     Else 
@@ -976,8 +983,9 @@ Public Sub BinarySearch(bounds As Variant, count As Variant, value As Variant) A
       Else
         Return (midd)
       Endif
-    Wend
-    
-    Return (low)
-    
+    Endif
+  Wend
+  
+  Return (low)
+  
 End

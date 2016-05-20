@@ -31,14 +31,14 @@
 
 Inherits B2Joint
 
-Public m_localAnchor1 As Variant = New B2Vec2()
-Public m_localAnchor2 As Variant = New B2Vec2()
-Public m_ptpImpulse As Variant = New B2Vec2()
+Public m_localAnchor1 As Variant = New B2Vec2
+Public m_localAnchor2 As Variant = New B2Vec2
+Public m_ptpImpulse As Variant = New B2Vec2
 Public m_motorImpulse As Variant = Null
 Public m_limitImpulse As Variant = Null
 Public m_limitPositionImpulse As Variant = Null
 
-Public m_ptpMass As Variant = New B2Mat22()
+Public m_ptpMass As Variant = New B2Mat22
 Public m_motorMass As Variant = Null
 Public m_intialAngle As Variant = Null
 Public m_lowerAngle As Variant = Null
@@ -50,7 +50,7 @@ Public m_enableLimit As Variant = Null
 Public m_enableMotor As Variant = Null
 Public m_limitState As Variant = 0
 
-Public tImpulse As Variant = New B2Vec2()
+Public tImpulse As Variant = New B2Vec2
 
 Public Sub GetAnchor1() As Variant ''funcion
   
@@ -124,8 +124,8 @@ Public Sub _new(def As Variant)
   
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -137,14 +137,14 @@ Public Sub _new(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.K = New B2Mat22()
-  Me.K1 = New B2Mat22()
-  Me.K2 = New B2Mat22()
-  Me.K3 = New B2Mat22()
-  Me.m_localAnchor1 = New B2Vec2()
-  Me.m_localAnchor2 = New B2Vec2()
-  Me.m_ptpImpulse = New B2Vec2()
-  Me.m_ptpMass = New B2Mat22()
+  Me.K = New B2Mat22
+  Me.K1 = New B2Mat22
+  Me.K2 = New B2Mat22
+  Me.K3 = New B2Mat22
+  Me.m_localAnchor1 = New B2Vec2
+  Me.m_localAnchor2 = New B2Vec2
+  Me.m_ptpImpulse = New B2Vec2
+  Me.m_ptpMass = New B2Mat22
   
   ' // super(def)
   ' // me.m_localAnchor1 = b2Math.b2MulTMV( me.m_body1.m_R, b2Math.SubtractVV( def.anchorPoint, me.m_body1.m_position))
@@ -174,10 +174,10 @@ Public Sub _new(def As Variant)
 End
 
 ' //  internal vars
-Public K As Variant = New B2Mat22()
-Public k1 As Variant = New B2Mat22()
-Public k2 As Variant = New B2Mat22()
-Public k3 As Variant = New B2Mat22()
+Public K As Variant = New B2Mat22
+Public k1 As Variant = New B2Mat22
+Public k2 As Variant = New B2Mat22
+Public k3 As Variant = New B2Mat22
 
 Public Sub PrepareVelocitySolver()
   

@@ -24,7 +24,7 @@ Public m_world As Variant = Null
 
 '// This lets us provide broadphase proxy pair user data for
 '// contacts that shouldn't exist.
-Public m_nullContact As Variant = New B2NullContact()
+Public m_nullContact As Variant = New B2NullContact
 Public m_destroyImmediate As Variant = Null
 
 Public Sub _new()
@@ -32,7 +32,7 @@ Public Sub _new()
   ' //  The constructor for b2PairCallback
   ' // 
   ' //  initialize instance variables for references
-  Me.m_nullContact = New B2NullContact()
+  Me.m_nullContact = New B2NullContact
   ' // 
   Me.m_world = Null
   Me.m_destroyImmediate = False

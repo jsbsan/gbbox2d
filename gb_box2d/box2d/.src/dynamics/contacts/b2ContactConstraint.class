@@ -32,11 +32,11 @@ Public Sub _new()
   
   Dim i As Integer
   ' //  initialize instance variables for references
-  Me.normal = New B2Vec2()
+  Me.normal = New B2Vec2
   ' // 
   Me.points = New Array(b2Settings.b2_maxManifoldPoints)
   For (var i = 0 To b2Settings.b2_maxManifoldPoints
-    Me.points[i] = New B2ContactConstraintPoint()
+    Me.points[i] = New B2ContactConstraintPoint
   Next
   
 End

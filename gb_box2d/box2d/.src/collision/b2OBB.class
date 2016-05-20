@@ -10,7 +10,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
-you must Not   
+'you must Not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -20,16 +20,16 @@ you must Not
 ' */
 ' //  A manifold for two touching convex shapes.
 
-  Public R As New B2Mat22()
+Public R As New B2Mat22()
 Public center As New B2Vec2()
 Public extents As New B2Vec2()
 
 Public Sub _new()
   ' //  initialize instance variables for references
   
-  Me.R = New B2Mat22()
-  Me.center = New B2Vec2()
-  Me.extents = New B2Vec2()
+  Me.R = New B2Mat22
+  Me.center = New B2Vec2
+  Me.extents = New B2Vec2
   
 End
 

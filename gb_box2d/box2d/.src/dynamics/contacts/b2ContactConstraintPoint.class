@@ -10,7 +10,7 @@
 ' * including commercial applications, and to alter it and redistribute it
 ' * freely, subject to the following restrictions:
 ' * 1. The origin of this software must not be misrepresented
-you must Not   
+'you must Not   
 ' * claim that you wrote the original software. If you use this software
 ' * in a product, an acknowledgment in the product documentation would be
 ' * appreciated but is not required.
@@ -19,7 +19,7 @@ you must Not
 ' * 3. This notice may not be removed or altered from any source distribution.
 ' */
 
-  Public localAnchor1 As New B2Vec2()
+Public localAnchor1 As New B2Vec2()
 Public localAnchor2 As New B2Vec2()
 Public normalImpulse As Variant = Null
 Public tangentImpulse As Variant = Null
@@ -32,8 +32,8 @@ Public velocityBias As Variant = Null
 Public Sub _new()
   
   ' //  initialize instance variables for references
-  Me.localAnchor1 = New B2Vec2()
-  Me.localAnchor2 = New B2Vec2()
+  Me.localAnchor1 = New B2Vec2
+  Me.localAnchor2 = New B2Vec2
   ' // 
   
 End

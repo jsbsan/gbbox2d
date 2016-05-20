@@ -67,7 +67,7 @@ Public Function b2CrossVF(a As Variant, s As Variant) As B2Vec2
   ''TODO: revisar esta funcion los parametros de entrada
   
   Dim v As New B2Vec2(s * a.y, - s * a.x)
-
+  
   Return v
   
 End
@@ -75,7 +75,7 @@ End
 Public Function b2CrossFV(s As Variant, a As Variant) As B2Vec2
   
   Dim v = New B2Vec2(- s * a.y, s * a.x)
-
+  
   Return v
   
 End
@@ -83,7 +83,7 @@ End
 Public Function b2MulMV(A As Variant, v As Variant) As B2Vec2
   
   Dim u = New B2Vec2(A.col1.x * v.x + A.col2.x * v.y, A.col1.y * v.x + A.col2.y * v.y)
-
+  
   Return u
   
 End
@@ -91,7 +91,7 @@ End
 Public Function b2MulTMV(A As Variant, v As Variant) As B2vec2
   
   Dim u As New B2Vec2(Me.b2Dot(v, A.col1), Me.b2Dot(v, A.col2))
-
+  
   Return u
   
 End
@@ -99,7 +99,7 @@ End
 Public Function AddVV(a As Variant, b As Variant) As B2Vec2
   
   Dim v As New B2Vec2(a.x + b.x, a.y + b.y)
-
+  
   Return v
   
 End
@@ -107,7 +107,7 @@ End
 Public Function SubtractVV(a As Variant, b As Variant) As B2Vec2
   
   Dim v As New B2Vec2(a.x - b.x, a.y - b.y)
-
+  
   Return v
   
 End
@@ -115,7 +115,7 @@ End
 Public Function MulFV(s As Variant, a As Variant) As B2Vec2
   
   Dim v As New B2Vec2(s * a.x, s * a.y)
-
+  
   Return v
   
 End
@@ -123,7 +123,7 @@ End
 Public Function AddMM(A As Variant, B As Variant) As B2Mat22
   
   Dim C As New B2Mat22(0, Me.AddVV(A.col1, B.col1), Me.AddVV(A.col2, B.col2))
-
+  
   Return C
   
 End
@@ -131,7 +131,7 @@ End
 Public Function b2MulMM(A As Variant, B As Variant) As B2Mat22
   
   Dim C As New B2Mat22(0, Me.b2MulMV(A, B.col1), Me.b2MulMV(A, B.col2))
-
+  
   Return C
   
 End
@@ -155,7 +155,7 @@ End
 Public Function b2AbsV(a As Variant) As B2Vec2
   
   Dim b As New B2Vec2(Me.b2Abs(a.x), Me.b2Abs(a.y))
-
+  
   Return b
   
 End
@@ -163,7 +163,7 @@ End
 Public Function b2AbsM(A As Variant) As B2Mat22
   
   Dim B As New B2Mat22(0, Me.b2AbsV(A.col1), Me.b2AbsV(A.col2))
-
+  
   Return B
   
 End
@@ -177,7 +177,7 @@ End
 Public Function b2MinV(a As Variant, b As Variant) As B2Vec2
   
   Dim c As New B2Vec2(Me.b2Min(a.x, b.x), Me.b2Min(a.y, b.y))
-
+  
   Return c
   
 End
@@ -193,7 +193,7 @@ End
 Public Function b2MaxV(a As Variant, b As Variant) As B2Vec2
   
   Dim c As New B2Vec2(Me.b2Max(a.x, b.x), Me.b2Max(a.y, b.y))
-
+  
   Return c
   
 End
@@ -213,7 +213,7 @@ End
 Public Sub b2Swap(a As Variant, b As Variant)
   
   Dim tmp As Variant = a[0]
-
+  
   a[0] = b[0]
   b[0] = tmp
   

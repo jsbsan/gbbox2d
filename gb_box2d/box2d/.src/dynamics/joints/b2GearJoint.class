@@ -31,13 +31,12 @@ Public m_prismatic1 As Variant = Null
 Public m_revolute2 As Variant = Null
 Public m_prismatic2 As Variant = Null
 
-Public m_groundAnchor1 As Variant = New B2Vec2()
-Public m_groundAnchor2 As Variant = New B2Vec2()
+Public m_groundAnchor1 As Variant = New B2Vec2
 
-Public m_localAnchor1 As Variant = New B2Vec2()
-Public m_localAnchor2 As Variant = New B2Vec2()
+Public m_localAnchor1 As Variant = New B2Vec2
+Public m_localAnchor2 As Variant = New B2Vec2
 
-Public m_J As Variant = New B2Jacobian()
+Public m_J As Variant = New B2Jacobian
 
 Public m_constant As Variant = Null
 Public m_ratio As Variant = Null
@@ -97,8 +96,8 @@ Public Sub _new(def As Variant)
   Dim coordinate2 As Variant
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -110,11 +109,11 @@ Public Sub _new(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.m_groundAnchor1 = New B2Vec2()
-  Me.m_groundAnchor2 = New B2Vec2()
-  Me.m_localAnchor1 = New B2Vec2()
-  Me.m_localAnchor2 = New B2Vec2()
-  Me.m_J = New B2Jacobian()
+  Me.m_groundAnchor1 = New B2Vec2
+  Me.m_groundAnchor2 = New B2Vec2
+  Me.m_localAnchor1 = New B2Vec2
+  Me.m_localAnchor2 = New B2Vec2
+  Me.m_J = New B2Jacobian
   ' // 
   ' //  parent constructor
   ' // super(def)

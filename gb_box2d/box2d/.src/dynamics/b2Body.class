@@ -23,16 +23,16 @@
 ' //  Set the position of the body's origin and rotation (radians).
 ' //  This breaks any contacts and wakes the other bodies.
 ' //  Temp mat
-Public sMat0 As Variant = New B2Mat22()
+Public sMat0 As Variant = New B2Mat22
 
 Public m_flags As Variant = 0
 
-Public m_position As Variant = New B2Vec2()
+Public m_position As Variant = New B2Vec2
 Public m_rotation As Variant = Null
-Public m_R As Variant = New B2Mat22(0)
+Public m_R As Variant = New B2Mat22
 
 / / Conservative advancement data.
-Public m_position0 As Variant = New B2Vec2()
+Public m_position0 As Variant = New B2Vec2
 Public m_rotation0 As Variant = Null
 
 Public m_linearVelocity As Variant = Null
@@ -112,7 +112,7 @@ End
 Public Sub SetCenterPosition(position As Variant, rotation As Variant) As Variant ''funcion
   
   Dim s As Variant
-
+  
   If (Me.IsFrozen()) Then 
     Return
   Endif
@@ -339,10 +339,10 @@ Public Sub _new(bd As Variant, world As Variant)
   Dim r As Variant 
   Dim shape As Variant 
   ' //  initialize instance variables for references
-  Me.sMat0 = New B2Mat22()
-  Me.m_position = New B2Vec2()
-  Me.m_R = New B2Mat22(0)
-  Me.m_position0 = New B2Vec2()
+  Me.sMat0 = New B2Mat22
+  Me.m_position = New B2Vec2
+  Me.m_R = New B2Mat22
+  Me.m_position0 = New B2Vec2
   ' // 
   Me.m_flags = 0
   Me.m_position.SetV(bd.position)
@@ -359,7 +359,7 @@ Public Sub _new(bd As Variant, world As Variant)
   massDatas = New Array(b2Settings.b2_maxShapesPerBody)
   
   For i = 0 To b2Settings.b2_maxShapesPerBody - 1
-    massDatas[i] = New B2MassData()
+    massDatas[i] = New B2MassData
   Next
   
   ' //  Compute the shape mass properties, the bodies total mass and COM.
@@ -497,7 +497,7 @@ End
 Public Sub Freeze()
   
   Dim var s As Variant = Me.m_shapeList
-
+  
   Me.m_flags |= b2Body.e_frozenFlag
   Me.m_linearVelocity.SetZero()
   Me.m_angularVelocity = 0.0

@@ -43,8 +43,8 @@ Public Sub _new(def As Variant)
   Dim tY As Variant
   ' //  The constructor for b2Joint
   ' //  initialize instance variables for references
-  Me.m_node1 = New B2JointNode()
-  Me.m_node2 = New B2JointNode()
+  Me.m_node1 = New B2JointNode
+  Me.m_node2 = New B2JointNode
   ' // 
   Me.m_type = def.type
   Me.m_prev = Null
@@ -56,9 +56,9 @@ Public Sub _new(def As Variant)
   Me.m_userData = def.userData
   ' // 
   ' //  initialize instance variables for references
-  Me.m_localAnchor1 = New B2Vec2()
-  Me.m_localAnchor2 = New B2Vec2()
-  Me.m_u = New B2Vec2()
+  Me.m_localAnchor1 = New B2Vec2
+  Me.m_localAnchor2 = New B2Vec2
+  Me.m_u = New B2Vec2
   ' // 
   
   ' // me.m_localAnchor1 = b2MulT( me.m_body1->m_R, def->anchorPoint1 - me.m_body1->m_position)
@@ -297,7 +297,7 @@ End
 
 Public Sub GetReactionForce(invTimeStep As Variant) As B2Vec2() ''funcion
   
-  Dim F As Variant = New B2Vec2()
+  Dim F As Variant = New B2Vec2
   
   F.SetV(Me.m_u)
   F.Multiply(Me.m_impulse * invTimeStep)
